@@ -1,0 +1,188 @@
+from tkinter import *
+from tkinter import ttk
+from functools import partial
+import numpy as np
+from zaber_motion import Units, Library, Measurement
+from zaber_motion.ascii import Connection, AllAxes
+
+motors=["0","1","2","3","3"]
+nx,ny,nz,r1,r2=[0,1,2,3,4]
+poses=np.zeros(5,dtype='int')
+
+# Interface
+def set_val(n,val):
+    # If val==0, home operation, else add to current
+    global poses
+    if (val==0):
+        poses[n]=0
+    else:
+        poses[n] += val
+    pos_strings[n].set(poses[n])
+ 
+def do_home(arg,event):
+    set_val(arg,0)
+    motor_home(arg)
+
+def do_home_all():
+    for n in range(5):
+        do_home(n,0)
+
+def do_move(arg,event):
+    nmotor=arg[0]
+    set_val(nmotor,arg[1])
+    move_motor_relative(nmotor,arg[1])
+
+def do_sweep(arg,event):
+    sweep_time=str_sweep_time.get()
+    if arg==0:
+        sweep1()
+
+# Zaber Motor Commands
+def connect():
+    global motors
+
+    Library.enable_device_db_store()
+    connection=Connection.open_serial_port("COM4")  # confirm that this is the right serial port
+
+    device_list = connection.detect_devices()
+    print("Found {} devices".format(len(device_list)))
+ 
+    device1 = device_list[0]  # device1 is the X-MCC
+    LSQx = device1.get_axis(1)  # "LSQx" refers to your first LSQ
+    LSQy = device1.get_axis(2)  # "LSQy" refers to your second LSQ
+    LSQz = device1.get_axis(3)  # "LSQz" refers to your third LSQ
+
+    device2 = device_list[1]  # device1 is the X-MCC
+    RSW1 = device2.get_axis(1)
+
+    device3 = device_list[2]  # device1 is the X-MCC
+    RSW2 = device2.get_axis(1)
+
+    motors=[LSQx, LSQy, LSQz, RSW1, RSW2]
+
+def connected():
+    if motors[0]=="0":
+        print("Not connected")
+        return False
+    else:
+        return True
+			
+def sweep1():
+    if connected()==False:
+        return 
+
+    sweep_time=str_sweep_time.get()
+    vals=[str1.get() for str1 in str_entries1]
+    sinMove1 = motors[nz].prepare_command("move sin ? ? ?", # Amp period count
+                                        Measurement(value=vals[2], unit=Units.LENGTH_MILLIMETRES),
+                                        Measurement(value=sweep_time,  unit=Units.TIME_SECONDS),
+                                        Measurement(value=1) 
+                                        )
+     
+    sinMove2 = motors[n2].prepare_command("move sin ? ? ?", # Amp period count
+                                        Measurement(value=vals[3], unit=Units.ANGLE_DEGREES),
+                                        Measurement(value=sweep_time,  unit=Units.TIME_SECONDS),
+                                        Measurement(value=1) 
+                                        )
+     
+    LSQx.move_absolute(vals[0], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+            velocity=vals[0]/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
+    LSQy.move_absolute(vals[1], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+            velocity=vals[1]/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
+    LSQz.generic_command( sinMove1 );
+    RSW1.generic_command( sinMove2 );
+    RSW2.move_absolute( vals[4], Units.ANGLE_DEGREES, wait_until_idle=False );
+
+def move_motor(nmotor):
+    if connected():
+        val=poses[nmotor]
+        if nmotor<3:
+            # Linear motors
+            motors[nmotor].move_absolute(val, Units.LENGTH_MILLIMETRES,wait_until_idle=False)
+        else:
+            motors[nmotor].move_absolute(val, Units.ANGLE_DEGREES,wait_until_idle=False)
+
+def move_motor_relative(nmotor,amt):
+    if connected():
+        val=poses[nmotor]
+        if nmotor<3:
+            # Linear motors
+            motors[nmotor].move_relative(val, Units.LENGTH_MILLIMETRES,wait_until_idle=False)
+        else:
+            motors[nmotor].move_relative(val, Units.ANGLE_DEGREES,wait_until_idle=False)
+
+def motor_home(nmotor):
+    if connected():
+        motors[nmotor].home(wait_until_idle = True)
+
+root = Tk()
+root.title('Zaber - Simple UI')
+root.geometry('768x384')
+f = ttk.Frame(root, width=512); f.grid()
+
+b_connect = ttk.Button(f, text="Connect", command=connect); b_connect.grid(row=0, column=0, padx=5, pady=5)
+
+pos_strings=[StringVar() for n in range(5)]
+
+# Movements:
+b_homes = [ttk.Button(f, text="Home%d"%(nmotor+1)) for nmotor in range(5)];
+b_m_big = [ttk.Button(f, text="--") for nmotor in range(5)];
+b_m_small = [ttk.Button(f, text="-") for nmotor in range(5)];
+b_p_big = [ttk.Button(f, text="+") for nmotor in range(5)];
+b_p_small = [ttk.Button(f, text="++") for nmotor in range(5)];
+
+for nb,b1 in enumerate(b_homes):
+    b1.grid(row=nb+1, column=0, padx=5, pady=5)
+    b1.bind('<ButtonPress-1>',partial(do_home,nb) )
+
+b_home_all= ttk.Button(f, text="Home ALL",command=do_home_all)
+b_home_all.grid(row=6, column=0, padx=5, pady=5)
+
+for nb,b1 in enumerate(b_m_big):
+    b1.grid(row=nb+1, column=1, padx=5, pady=5)
+    b1.bind('<ButtonPress-1>',partial(do_move,(nb,-10) ) )
+for nb,b1 in enumerate(b_m_small):
+    b1.grid(row=nb+1, column=2, padx=5, pady=5)
+    b1.bind('<ButtonPress-1>',partial(do_move,(nb,-1) ) )
+for nb,b1 in enumerate(b_p_big):
+    b1.grid(row=nb+1, column=4, padx=5, pady=5)
+    b1.bind('<ButtonPress-1>',partial(do_move,(nb,+1) ) )
+for nb,b1 in enumerate(b_p_small):
+    b1.grid(row=nb+1, column=5, padx=5, pady=5)
+    b1.bind('<ButtonPress-1>',partial(do_move,(nb,+10) ) )
+
+l_pos = [ttk.Label(f, textvariable=pos_strings[nmotor]) for nmotor in range(5)];
+for nb,l1 in enumerate(l_pos):
+    pos_strings[nb].set('? %d'%(nb+1)) 
+    l1.grid(row=nb+1, column=3, padx=5, pady=5)
+
+str_entries1=[StringVar() for n in range(5)]
+str_entries2=[StringVar() for n in range(5)]
+entries1 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries1)]
+entries2 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries2)]
+
+for n in range(5):
+    entries1[n].grid(row=n+1,column=6,padx=5,pady=5)
+    entries2[n].grid(row=n+1,column=6,padx=5,pady=5)
+    str_entries1[n].set('0')
+    str_entries2[n].set('0')
+
+# Sweep buttons
+b_sweep1 = ttk.Button(f, text="SweepTo1")
+b_sweep1.grid(row=0, column=6, padx=5, pady=5)
+b_sweep1.bind('<ButtonPress-1>',partial(do_sweep,0) )
+
+# Sweep time
+str_sweep_time=StringVar()
+str_sweep_time.set("3")
+time_entry = ttk.Entry(f, width=7, textvariable=str_sweep_time) 
+time_entry.grid(row=8, column=6, padx=5, pady=5)
+lblTime = ttk.Label(f, text="Time (s):")
+lblTime.grid(row=8,column=5,padx=5,pady=5)
+
+strUnits=['mm','mm','mm (sin)','deg (sin)','deg']
+l_units=[ttk.Label(f,text=txt,anchor="w",justify=LEFT) for n,txt in enumerate(strUnits)]
+for n,l in enumerate(l_units):
+    l.grid(row=n+1,column=8)
+
+root.mainloop()
