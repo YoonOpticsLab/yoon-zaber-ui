@@ -9,8 +9,8 @@ motors=["0","1","2","3","3"]
 nx,ny,nz,r1,r2=[0,1,2,3,4]
 poses=np.zeros(5,dtype='int')
 
-# Interface
-def set_val(n,val):
+# Set the current position. Is either a 0 or a relative amt.
+def set_val(n,val,is_relative=True):
     # If val==0, home operation, else add to current
     global poses
     if (val==0):
@@ -19,6 +19,7 @@ def set_val(n,val):
         poses[n] += val
     pos_strings[n].set(poses[n])
  
+# Interface
 def do_home(arg,event):
     set_val(arg,0)
     motor_home(arg)
@@ -72,7 +73,7 @@ def sweep1():
         return 
 
     sweep_time=str_sweep_time.get()
-    vals=[str1.get() for str1 in str_entries1]
+    vals=[int(str1.get()) for str1 in str_entries1]
     sinMove1 = motors[nz].prepare_command("move sin ? ? ?", # Amp period count
                                         Measurement(value=vals[2], unit=Units.LENGTH_MILLIMETRES),
                                         Measurement(value=sweep_time,  unit=Units.TIME_SECONDS),
@@ -92,6 +93,9 @@ def sweep1():
     LSQz.generic_command( sinMove1 );
     RSW1.generic_command( sinMove2 );
     RSW2.move_absolute( vals[4], Units.ANGLE_DEGREES, wait_until_idle=False );
+
+    for nmotor in range(5):
+        set_val(nmotor,vals[nmotor],False) # set new absolute positions
 
 def move_motor(nmotor):
     if connected():
@@ -131,6 +135,7 @@ b_m_small = [ttk.Button(f, text="-") for nmotor in range(5)];
 b_p_big = [ttk.Button(f, text="+") for nmotor in range(5)];
 b_p_small = [ttk.Button(f, text="++") for nmotor in range(5)];
 
+# Homes
 for nb,b1 in enumerate(b_homes):
     b1.grid(row=nb+1, column=0, padx=5, pady=5)
     b1.bind('<ButtonPress-1>',partial(do_home,nb) )
@@ -138,6 +143,7 @@ for nb,b1 in enumerate(b_homes):
 b_home_all= ttk.Button(f, text="Home ALL",command=do_home_all)
 b_home_all.grid(row=6, column=0, padx=5, pady=5)
 
+# Relative moves
 for nb,b1 in enumerate(b_m_big):
     b1.grid(row=nb+1, column=1, padx=5, pady=5)
     b1.bind('<ButtonPress-1>',partial(do_move,(nb,-10) ) )
