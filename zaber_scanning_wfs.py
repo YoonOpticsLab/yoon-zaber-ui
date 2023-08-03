@@ -23,14 +23,20 @@ def set_val(n,val,is_relative=True):
 def do_home(arg,event):
     set_val(arg,0)
     motor_home(arg)
+    
+    if arg==2:
+        sinMove1 = device_list[0].prepare_command("pvt 1 setup live 3")
+        device_list[0].generic_command( sinMove1 );
+        print ("Set live")
 
 def do_home_all():
-    for n in range(5):
+    for n in range(3):
         do_home(n,0)
 
 def do_move(arg,event):
     nmotor=arg[0]
     set_val(nmotor,arg[1])
+    #print(  nmotor, arg[1] )
     move_motor_relative(nmotor,arg[1])
 
 def do_sweep(arg,event):
@@ -40,7 +46,7 @@ def do_sweep(arg,event):
 
 # Zaber Motor Commands
 def connect():
-    global motors
+    global motors, device_list
 
     Library.enable_device_db_store()
     connection=Connection.open_serial_port("COM4")  # confirm that this is the right serial port
@@ -53,11 +59,17 @@ def connect():
     LSQy = device1.get_axis(2)  # "LSQy" refers to your second LSQ
     LSQz = device1.get_axis(3)  # "LSQz" refers to your third LSQ
 
-    device2 = device_list[1]  # device1 is the X-MCC
-    RSW1 = device2.get_axis(1)
+    if len(device_list)>1:
+        device2 = device_list[1]  # device1 is the X-MCC
+        RSW1 = device2.get_axis(1)
 
-    device3 = device_list[2]  # device1 is the X-MCC
-    RSW2 = device2.get_axis(1)
+        device3 = device_list[2]  # device1 is the X-MCC
+        RSW2 = device3.get_axis(1)
+    else:
+        RSW1 = None
+        RSW2 = None
+        
+        
 
     motors=[LSQx, LSQy, LSQz, RSW1, RSW2]
 
@@ -72,27 +84,30 @@ def sweep1():
     if connected()==False:
         return 
 
-    sweep_time=str_sweep_time.get()
-    vals=[int(str1.get()) for str1 in str_entries1]
-    sinMove1 = motors[nz].prepare_command("move sin ? ? ?", # Amp period count
-                                        Measurement(value=vals[2], unit=Units.LENGTH_MILLIMETRES),
-                                        Measurement(value=sweep_time,  unit=Units.TIME_SECONDS),
-                                        Measurement(value=1) 
-                                        )
+    sweep_time=float(str_sweep_time.get() )
+    vals=[float(str1.get()) for str1 in str_entries1]
+    print( vals[0], vals[1], vals[0]*1.0 )
+    # sinMove1 = motors[2].prepare_command("move sin ? ? ?", # Amp period count
+                                        # Measurement(value=vals[2], unit=Units.LENGTH_MILLIMETRES),
+                                        # Measurement(value=sweep_time,  unit=Units.TIME_SECONDS),
+                                        # Measurement(value=1) 
+                                        # )
+    sinMove1 = device_list[0].prepare_command("pvt 1 call 1")    
      
-    sinMove2 = motors[n2].prepare_command("move sin ? ? ?", # Amp period count
-                                        Measurement(value=vals[3], unit=Units.ANGLE_DEGREES),
-                                        Measurement(value=sweep_time,  unit=Units.TIME_SECONDS),
-                                        Measurement(value=1) 
-                                        )
-     
-    LSQx.move_absolute(vals[0], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
-            velocity=vals[0]/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
-    LSQy.move_absolute(vals[1], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
-            velocity=vals[1]/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
-    LSQz.generic_command( sinMove1 );
-    RSW1.generic_command( sinMove2 );
-    RSW2.move_absolute( vals[4], Units.ANGLE_DEGREES, wait_until_idle=False );
+    motors[0].move_relative( vals[0], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+            velocity=abs(vals[0])/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
+    motors[1].move_relative( vals[1], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+            velocity=abs(vals[1])/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
+    if vals[2] > 0:
+        #sinMove1 = device_list[0].prepare_command("pvt 1 setup live 3")
+        #device_list[0].generic_command( sinMove1 );
+        sinMove1 = device_list[0].prepare_command("pvt 1 call 1")    
+        device_list[0].generic_command( sinMove1 );
+    if not(vals[3] == 0):
+        motors[3].move_relative( vals[3], Units.ANGLE_DEGREES, wait_until_idle=False );
+    if not(vals[4] == 0):
+        motors[4].move_relative( vals[4], Units.ANGLE_DEGREES, wait_until_idle=False );
+    ##motors[4].move_absolute( vals[4], Units.ANGLE_DEGREES, wait_until_idle=False );
 
     for nmotor in range(5):
         set_val(nmotor,vals[nmotor],False) # set new absolute positions
@@ -108,7 +123,7 @@ def move_motor(nmotor):
 
 def move_motor_relative(nmotor,amt):
     if connected():
-        val=poses[nmotor]
+        val=amt #poses[nmotor]
         if nmotor<3:
             # Linear motors
             motors[nmotor].move_relative(val, Units.LENGTH_MILLIMETRES,wait_until_idle=False)
@@ -169,7 +184,7 @@ entries2 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entri
 
 for n in range(5):
     entries1[n].grid(row=n+1,column=6,padx=5,pady=5)
-    entries2[n].grid(row=n+1,column=6,padx=5,pady=5)
+    entries2[n].grid(row=n+1,column=7,padx=5,pady=5)
     str_entries1[n].set('0')
     str_entries2[n].set('0')
 
