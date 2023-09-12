@@ -18,12 +18,12 @@ def set_val(n,val,is_relative=True):
     else:
         poses[n] += val
     pos_strings[n].set(poses[n])
- 
+
 # Interface
 def do_home(arg,event):
     set_val(arg,0)
     motor_home(arg)
-    
+
     if arg==2:
         sinMove1 = device_list[0].prepare_command("pvt 1 setup live 3")
         device_list[0].generic_command( sinMove1 );
@@ -47,14 +47,23 @@ def do_sweep(arg,event):
 # Zaber Motor Commands
 def connect():
     global motors, device_list
+    global zpvt
 
-    Library.enable_device_db_store()
-    connection=Connection.open_serial_port("COM4")  # confirm that this is the right serial port
+    if True: #New way
+        zpvt=zaber_pvt.ZaberPVT()
+        zpvt.connect()
 
-    device_list = connection.detect_devices()
-    print("Found {} devices".format(len(device_list)))
+        device_list=zpvt.devices
+    else:
+
+        Library.enable_device_db_store()
+        connection=Connection.open_serial_port("COM4")  # confirm that this is the right serial port
+
+        device_list = connection.detect_devices()
+        print("Found {} devices".format(len(device_list)))
  
     device1 = device_list[0]  # device1 is the X-MCC
+
     LSQx = device1.get_axis(1)  # "LSQx" refers to your first LSQ
     LSQy = device1.get_axis(2)  # "LSQy" refers to your second LSQ
     LSQz = device1.get_axis(3)  # "LSQz" refers to your third LSQ
@@ -68,8 +77,6 @@ def connect():
     else:
         RSW1 = None
         RSW2 = None
-        
-        
 
     motors=[LSQx, LSQy, LSQz, RSW1, RSW2]
 
@@ -79,7 +86,7 @@ def connected():
         return False
     else:
         return True
-			
+
 def sweep1():
     if connected()==False:
         return 
@@ -90,10 +97,10 @@ def sweep1():
     # sinMove1 = motors[2].prepare_command("move sin ? ? ?", # Amp period count
                                         # Measurement(value=vals[2], unit=Units.LENGTH_MILLIMETRES),
                                         # Measurement(value=sweep_time,  unit=Units.TIME_SECONDS),
-                                        # Measurement(value=1) 
+                                        # Measurement(value=1)
                                         # )
-    sinMove1 = device_list[0].prepare_command("pvt 1 call 1")    
-     
+    sinMove1 = device_list[0].prepare_command("pvt 1 call 1")
+
     motors[0].move_relative( vals[0], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
             velocity=abs(vals[0])/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
     motors[1].move_relative( vals[1], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
@@ -101,7 +108,7 @@ def sweep1():
     if vals[2] > 0:
         #sinMove1 = device_list[0].prepare_command("pvt 1 setup live 3")
         #device_list[0].generic_command( sinMove1 );
-        sinMove1 = device_list[0].prepare_command("pvt 1 call 1")    
+        sinMove1 = device_list[0].prepare_command("pvt 1 call 1")
         device_list[0].generic_command( sinMove1 );
     if not(vals[3] == 0):
         motors[3].move_relative( vals[3], Units.ANGLE_DEGREES, wait_until_idle=False );
@@ -174,7 +181,7 @@ for nb,b1 in enumerate(b_p_small):
 
 l_pos = [ttk.Label(f, textvariable=pos_strings[nmotor]) for nmotor in range(5)];
 for nb,l1 in enumerate(l_pos):
-    pos_strings[nb].set('? %d'%(nb+1)) 
+    pos_strings[nb].set('? %d'%(nb+1))
     l1.grid(row=nb+1, column=3, padx=5, pady=5)
 
 str_entries1=[StringVar() for n in range(5)]
@@ -196,7 +203,7 @@ b_sweep1.bind('<ButtonPress-1>',partial(do_sweep,0) )
 # Sweep time
 str_sweep_time=StringVar()
 str_sweep_time.set("3")
-time_entry = ttk.Entry(f, width=7, textvariable=str_sweep_time) 
+time_entry = ttk.Entry(f, width=7, textvariable=str_sweep_time)
 time_entry.grid(row=8, column=6, padx=5, pady=5)
 lblTime = ttk.Label(f, text="Time (s):")
 lblTime.grid(row=8,column=5,padx=5,pady=5)

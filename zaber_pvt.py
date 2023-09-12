@@ -64,19 +64,19 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
             poses=[Measurement(ax1_pos, Units.LENGTH_MILLIMETRES),
                    Measurement(row["Displacement(mm)"], Units.LENGTH_MILLIMETRES),
                    Measurement(ax3_pos, Units.LENGTH_MILLIMETRES) ];
-            
+
         if (row["Velocity (mm/s)"] is None):
             vels=[None]*NDIMS
         else:
             value=row["Velocity (mm/s)"] if (index <= idxs[-1]) else [0]*NDIMS   # Make final vel 0
             vels=[Measurement(value, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS   
-     
+
         # Toggle the DIO (first channel): at 0 will be 1, at 1 will be 0, at 2 will be 1, etc..
         # use +1 mod 2. TODO (this is pretty hacky and inflexible)
         pvt.set_digital_output(1,(index+1)%2)
-        
+
         pvt.point(poses, vels , Measurement(row["Time(s)"], Units.TIME_SECONDS) )
-        
+
         #time.sleep(0.01)
         if index==0:
             start_pos=[poses,vels, Measurement(2.0, Units.TIME_SECONDS) ] # Let it take x seconds to get to start pos
@@ -85,7 +85,7 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
 
     # finish writing to the buffer
     pvt.disable()
-    
+
     # The table starts with the first move (last entry is final/start position)
     # Limits start start with first of pair 
     start_pos=[[Measurement(ax1_sweep_lims[0], Units.LENGTH_MILLIMETRES),
@@ -93,43 +93,45 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
                    Measurement(ax3_sweep_lims[0], Units.LENGTH_MILLIMETRES) ],
                 [None,None,None],
                 Measurement(2.0, Units.TIME_SECONDS) ];
-                
+
     return pvt_buffer,arr_axes,start_pos
-    
+
 class ZaberPVT:
     def __init__(self,port="COM4"):
         self.port=port
-        
+
     def connect(self):
         Library.enable_device_db_store()
         connection=Connection.open_serial_port(self.port)  # confirm that this is the right serial port
 
         self.devices = connection.detect_devices()
         print("Found {} devices".format(len(self.devices)))
-        
+
+        self.setup_zlut()
+
     def setup_zlut(self):
         df_zlut=table_to_df()
         self.pvt_buffer,self.arr_pvt_axes,self.start_pos=df_to_pvt(self.devices[0],df_zlut)
-        
+
         # for execution:
         self.live_pvt = self.devices[0].get_pvt(2)
         self.live_pvt.disable()
         self.live_pvt.setup_live(*self.arr_pvt_axes) # Execute on axis Z
-        
+
     def execute_pvt(self):
         self.live_pvt.call( self.pvt_buffer)
-        
+
     def home3(self):
         self.devices[0].all_axes.home()
         self.devices[2].all_axes.home()
-        
+
     def move3(self, amt_deg=45):
         self.live_pvt.call(self.pvt_buffer)
         self.devices[2].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
                                           velocity=amt_deg/3.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
-                                          wait_until_idle=False)    
-        
+                                          wait_until_idle=False)
 
-    
-    
-	
+
+
+
+
