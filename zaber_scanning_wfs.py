@@ -39,6 +39,11 @@ def do_move(arg,event):
     #print(  nmotor, arg[1] )
     move_motor_relative(nmotor,arg[1])
 
+def do_start(arg,event):
+    sweep_time=str_sweep_time.get()
+    if arg==0:
+        sweep1()
+
 def do_sweep(arg,event):
     sweep_time=str_sweep_time.get()
     if arg==0:
@@ -101,9 +106,11 @@ def sweep1():
                                         # )
     sinMove1 = device_list[0].prepare_command("pvt 1 call 1")
 
-    motors[0].move_relative( vals[0], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+    motors[0].move_absolute(
+        Measurement(value=vals[0], unit=Units.LENGTH_MILLIMETRES), Units.LENGTH_MILLIMETRES, wait_until_idle=False,
             velocity=abs(vals[0])/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
-    motors[1].move_relative( vals[1], Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+    motors[1].move_absolute( 
+        Measurement(value=vals[1], unit=Units.LENGTH_MILLIMETRES), Units.LENGTH_MILLIMETRES, wait_until_idle=False,
             velocity=abs(vals[1])/sweep_time, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
     if vals[2] > 0:
         #sinMove1 = device_list[0].prepare_command("pvt 1 setup live 3")
@@ -143,7 +150,7 @@ def motor_home(nmotor):
 
 root = Tk()
 root.title('Zaber - Simple UI')
-root.geometry('768x384')
+root.geometry('900x400')
 f = ttk.Frame(root, width=512); f.grid()
 
 b_connect = ttk.Button(f, text="Connect", command=connect); b_connect.grid(row=0, column=0, padx=5, pady=5)
@@ -184,20 +191,35 @@ for nb,l1 in enumerate(l_pos):
     pos_strings[nb].set('? %d'%(nb+1))
     l1.grid(row=nb+1, column=3, padx=5, pady=5)
 
+str_entries0=[StringVar() for n in range(5)]
 str_entries1=[StringVar() for n in range(5)]
 str_entries2=[StringVar() for n in range(5)]
+entries0 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries1)]
 entries1 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries1)]
 entries2 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries2)]
 
+enables = [BooleanVar(f,True) for n in range(5)]
+enables[3].set(False)
+widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_entries2)]
+
 for n in range(5):
-    entries1[n].grid(row=n+1,column=6,padx=5,pady=5)
-    entries2[n].grid(row=n+1,column=7,padx=5,pady=5)
-    str_entries1[n].set('0')
-    str_entries2[n].set('0')
+    entries0[n].grid(row=n+1,column=6,padx=5,pady=5)
+    entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
+    entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
+    str_entries0[n].set(' ')
+    str_entries1[n].set(' ')
+    str_entries2[n].set(' ')
+
+    widget_enables[n].grid(row=n+1,column=10)
+
+# Sweep buttons
+b_start = ttk.Button(f, text="Start")
+b_start.grid(row=0, column=6, padx=5, pady=5)
+b_start.bind('<ButtonPress-1>',partial(do_start,0) )
 
 # Sweep buttons
 b_sweep1 = ttk.Button(f, text="SweepTo1")
-b_sweep1.grid(row=0, column=6, padx=5, pady=5)
+b_sweep1.grid(row=0, column=7, padx=5, pady=5)
 b_sweep1.bind('<ButtonPress-1>',partial(do_sweep,0) )
 
 # Sweep time
@@ -211,6 +233,6 @@ lblTime.grid(row=8,column=5,padx=5,pady=5)
 strUnits=['mm','mm','mm (sin)','deg (sin)','deg']
 l_units=[ttk.Label(f,text=txt,anchor="w",justify=LEFT) for n,txt in enumerate(strUnits)]
 for n,l in enumerate(l_units):
-    l.grid(row=n+1,column=8)
+    l.grid(row=n+1,column=9)
 
 root.mainloop()
