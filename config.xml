@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='utf-8'?>
+<settings>
+    <autoconnect>COM4</autoconnect>
+    <camera_preview>1</camera_preview>
+    <camera_update_rate_ms>100</camera_update_rate_ms>
+    <camera0_gain>18</camera0_gain>
+    <camera1_geometry>986x718+1331+484</camera1_geometry>
+    <camera0_geometry>891x731+34+418</camera0_geometry>
+    <camera0_exposure>6309.57344480193</camera0_exposure>
+    <camera0_exposure_log>1</camera0_exposure_log>
+    <camera1_exposure>50118.72336272725</camera1_exposure>
+    <camera1_gain>16</camera1_gain>
+    <camera1_exposure_log>1</camera1_exposure_log>
+    <camera_sweep_snap_rate_ms>20</camera_sweep_snap_rate_ms>
+
+	<!-- Motor 1: Vertical
+		 Motor 2: In/out
+		 Motor 3: Lateral
+		 Motor 4: Mirror rotation
+		 Motor 5: Swing
+	-->
+	
+	<!-- Proportion of range of motors -->
+	<pos_middle_horizontal1>0.5</pos_middle_horizontal1>
+	<pos_middle_horizontal2>0</pos_middle_horizontal2>
+	<pos_middle_horizontal3>0.5</pos_middle_horizontal3>
+	<pos_middle_horizontal4>0</pos_middle_horizontal4>
+	<pos_middle_horizontal5>0</pos_middle_horizontal5>
+
+	<!-- Horizontal sweep -->
+	<min_angle_horizontal>-40</min_angle_horizontal>
+	<max_angle_horizontal> 40</max_angle_horizontal>
+	<mult_horizontal>90</mult_horizontal>
+	<steps_horizontal>51</steps_horizontal>
+
+	<!-- Relative to middle position -->
+	<pos_start_horizontal1>-0</pos_start_horizontal1>
+	<pos_start_horizontal2>0</pos_start_horizontal2>
+	<pos_start_horizontal3>-30</pos_start_horizontal3>
+	<pos_start_horizontal4>-90</pos_start_horizontal4>
+	<pos_start_horizontal5>30</pos_start_horizontal5>
+	
+	<pos_stop_horizontal1>0</pos_stop_horizontal1>
+	<pos_stop_horizontal2></pos_stop_horizontal2>
+	<pos_stop_horizontal3>-</pos_stop_horizontal3>
+	<pos_stop_horizontal4>-</pos_stop_horizontal4>
+	<pos_stop_horizontal4>-</pos_stop_horizontal4>
+	
+</settings>

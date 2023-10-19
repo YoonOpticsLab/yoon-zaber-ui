@@ -47,10 +47,12 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
     pvt.setup_store(pvt_buffer, *arr_axes )
 
     idxs=np.arange(0,len(df_zlut),step_size)
+    
+    npoint=0
     # add PVT points from LUT in Excel file
     for index, row in df_zlut.iloc[idxs].iterrows():
 
-        print( index, idxs[-1] )
+        #print( index, idxs[-1], len(df_zlut), index==idxs[-1] )
         # Add each point in a loop
         if NDIMS==1:
             poses=[Measurement(row["Displacement(mm)"], Units.LENGTH_MILLIMETRES)]
@@ -65,23 +67,25 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
                    Measurement(row["Displacement(mm)"], Units.LENGTH_MILLIMETRES),
                    Measurement(ax3_pos, Units.LENGTH_MILLIMETRES) ];
 
-        if (row["Velocity (mm/s)"] is None):
+        if ( row["Velocity (mm/s)"] is None) and (index<idxs[-1]):
             vels=[None]*NDIMS
         else:
-            value=row["Velocity (mm/s)"] if (index <= idxs[-1]) else [0]*NDIMS   # Make final vel 0
+            # TODO: This is suspicious singleton vs. list
+            value=row["Velocity (mm/s)"] if (index < idxs[-1]) else 0   # Make final vel 0
             vels=[Measurement(value, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS   
 
         # Toggle the DIO (first channel): at 0 will be 1, at 1 will be 0, at 2 will be 1, etc..
         # use +1 mod 2. TODO (this is pretty hacky and inflexible)
-        pvt.set_digital_output(1,(index+1)%2)
+        # pvt.set_digital_output(1,(index+1)%2)
 
         pvt.point(poses, vels , Measurement(row["Time(s)"], Units.TIME_SECONDS) )
 
-        #time.sleep(0.01)
         if index==0:
             start_pos=[poses,vels, Measurement(2.0, Units.TIME_SECONDS) ] # Let it take x seconds to get to start pos
+            
+        npoint += 1 # Can't use "index" in loop since it may skip points
 
-    pvt.set_digital_output(1,0)
+    # pvt.set_digital_output(1,0)
 
     # finish writing to the buffer
     pvt.disable()
@@ -96,6 +100,78 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
 
     return pvt_buffer,arr_axes,start_pos
 
+def DEG2RAD(angl):
+    return angl/180.0 * np.pi
+    
+def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10], ax3_sweep_lims=[10,0], bounds=[-40,40],mult=0):
+    pvt = device.get_pvt(npvt)
+    pvt.disable()
+
+    pvt_buffer = device.get_pvt_buffer(nbuffer)
+    pvt_buffer.erase()
+
+    NDIMS=ndims
+    arr_axes=np.arange(NDIMS)+1
+    # set up PVT to store points to PVT buffer 1 and
+    # to use the first axis for unit conversion
+    pvt.setup_store(pvt_buffer, *arr_axes )
+
+    idxs=np.arange(npts)
+    
+    npoint=0
+    # add PVT points from LUT in Excel file
+    for index in idxs:
+
+        val=(1-np.cos( (DEG2RAD((bounds[1]-bounds[0])/npts*index + bounds[0] )))) * mult
+        #print( val )
+        # Add each point in a loop
+        if NDIMS==1:
+            poses=[Measurement(val, Units.LENGTH_MILLIMETRES)]
+        elif NDIMS==2:
+            ax1_pos = ax1_sweep_lims[0] + (index+1)*(ax1_sweep_lims[1]-ax1_sweep_lims[0])/npts
+            poses=[Measurement(ax1_pos, Units.LENGTH_MILLIMETRES),
+                   Measurement(val, Units.LENGTH_MILLIMETRES)]
+        else: # Assume 3
+            ax1_pos = ax1_sweep_lims[0] + (index+1)*(ax1_sweep_lims[1]-ax1_sweep_lims[0])/npts
+            ax3_pos = ax3_sweep_lims[0] + (index+1)*(ax3_sweep_lims[1]-ax3_sweep_lims[0])/npts
+            poses=[Measurement(ax1_pos, Units.LENGTH_MILLIMETRES),
+                   Measurement(val, Units.LENGTH_MILLIMETRES),
+                   Measurement(ax3_pos, Units.LENGTH_MILLIMETRES) ];
+
+        #if ( row["Velocity (mm/s)"] is None) and (index<idxs[-1]):
+        vels=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS  
+        #else:
+        #    # TODO: This is suspicious singleton vs. list
+        #    value=row["Velocity (mm/s)"] if (index < idxs[-1]) else 0   # Make final vel 0
+        #    vels=[Measurement(value, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS   
+
+        # Toggle the DIO (first channel): at 0 will be 1, at 1 will be 0, at 2 will be 1, etc..
+        # use +1 mod 2. TODO (this is pretty hacky and inflexible)
+        pvt.set_digital_output(1,(index+1)%2)
+
+        pvt.point(poses, vels, Measurement(3.0/npts, Units.TIME_SECONDS) ) # TODO: Entire duration
+
+        #if index==0:
+        #    start_pos=[poses,vels, Measurement(2.0, Units.TIME_SECONDS) ] # Let it take x seconds to get to start pos
+            
+        npoint += 1 # Can't use "index" in loop since it may skip points
+
+    # pvt.set_digital_output(1,0)
+
+    # finish writing to the buffer
+    pvt.disable()
+
+    # The table starts with the first move (last entry is final/start position)
+    # Limits start start with first of pair 
+    #start_pos=[[Measurement(ax1_sweep_lims[0], Units.LENGTH_MILLIMETRES),
+    #               Measurement(df_zlut.iloc[-1]["Displacement(mm)"], Units.LENGTH_MILLIMETRES),
+    #               Measurement(ax3_sweep_lims[0], Units.LENGTH_MILLIMETRES) ],
+    #            [None,None,None],
+    #            Measurement(2.0, Units.TIME_SECONDS) ];
+
+    return pvt_buffer,arr_axes,(0,0,0)
+
+
 class ZaberPVT:
     def __init__(self,port="COM4"):
         self.port=port
@@ -107,11 +183,14 @@ class ZaberPVT:
         self.devices = connection.detect_devices()
         print("Found {} devices".format(len(self.devices)))
 
-        self.setup_zlut()
+        #self.setup_zlut([0,10],[10,0])
 
-    def setup_zlut(self):
+    def setup_zlut(self,ax1_lims,ax3_lims,step_size=5):
         df_zlut=table_to_df()
-        self.pvt_buffer,self.arr_pvt_axes,self.start_pos=df_to_pvt(self.devices[0],df_zlut)
+        #self.pvt_buffer,self.arr_pvt_axes,self.start_pos=df_to_pvt(self.devices[0],df_zlut,
+        #    ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims, step_size=step_size)
+        self.pvt_buffer,self.arr_pvt_axes,self.start_pos=cos_to_pvt(self.devices[0],51,
+            ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims )
 
         # for execution:
         self.live_pvt = self.devices[0].get_pvt(2)
@@ -127,7 +206,8 @@ class ZaberPVT:
 
     def move3(self, amt_deg=45):
         self.live_pvt.call(self.pvt_buffer)
-        self.devices[2].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
+        if False:
+            self.devices[2].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
                                           velocity=amt_deg/3.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
                                           wait_until_idle=False)
 
