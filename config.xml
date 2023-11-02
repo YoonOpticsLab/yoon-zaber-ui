@@ -17,7 +17,7 @@
 		 Motor 2: In/out
 		 Motor 3: Lateral
 		 Motor 4: Mirror rotation
-		 Motor 5: Swing
+		 Motor 5: Platform Swing
 	-->
 	
 	<!-- Proportion of range of motors -->

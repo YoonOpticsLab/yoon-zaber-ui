@@ -69,9 +69,10 @@ def do_home_all():
 
 def do_move(arg,event):
     nmotor=arg[0]
-    set_val(nmotor,arg[1])
+    amt=arg[1]*nudge_amount[nmotor][arg[2]]
     #print(  nmotor, arg[1] )
-    move_motor_relative(nmotor,arg[1]*nudge_amount[nmotor][arg[2]])
+    move_motor_relative(nmotor,amt)
+    set_val(nmotor,amt)
 
 def do_start(arg,event):
     sweep_time=str_sweep_time.get()

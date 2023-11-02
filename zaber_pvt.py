@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 
 
+DEVICE_ROT_MIRROR=1
+DEVICE_ROT_PLATFORM=2
+
 # Take xls table and make it into a PVT table
 def table_to_df(filename='z_table.xlsx', NO_VELOCITY=True):
     # True=Let Zaber figure out what the velocities should be
@@ -103,7 +106,7 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
 def DEG2RAD(angl):
     return angl/180.0 * np.pi
     
-def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10], ax3_sweep_lims=[10,0], bounds=[-40,40],mult=0):
+def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10], ax3_sweep_lims=[10,0], bounds=[-40,40],mult=0,duration_sec=3.0):
     pvt = device.get_pvt(npvt)
     pvt.disable()
 
@@ -120,9 +123,9 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
     
     npoint=0
     # add PVT points from LUT in Excel file
-    for index in idxs:
+    for nidx,index in enumerate(idxs):
 
-        val=(1-np.cos( (DEG2RAD((bounds[1]-bounds[0])/npts*index + bounds[0] )))) * mult
+        val=(1-np.cos( (DEG2RAD((bounds[1]-bounds[0])/(npts-1)*(index) + bounds[0] )))) * mult
         #print( val )
         # Add each point in a loop
         if NDIMS==1:
@@ -132,14 +135,23 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
             poses=[Measurement(ax1_pos, Units.LENGTH_MILLIMETRES),
                    Measurement(val, Units.LENGTH_MILLIMETRES)]
         else: # Assume 3
-            ax1_pos = ax1_sweep_lims[0] + (index+1)*(ax1_sweep_lims[1]-ax1_sweep_lims[0])/npts
-            ax3_pos = ax3_sweep_lims[0] + (index+1)*(ax3_sweep_lims[1]-ax3_sweep_lims[0])/npts
-            poses=[Measurement(ax1_pos, Units.LENGTH_MILLIMETRES),
-                   Measurement(val, Units.LENGTH_MILLIMETRES),
-                   Measurement(ax3_pos, Units.LENGTH_MILLIMETRES) ];
+            ax1_pos = ax1_sweep_lims[0] + (index)*(ax1_sweep_lims[1]-ax1_sweep_lims[0])/(npts-1)
+            ax3_pos = ax3_sweep_lims[0] + (index)*(ax3_sweep_lims[1]-ax3_sweep_lims[0])/(npts-1)
+            poses = [ax1_pos, val, ax3_pos]
+            poses_meas=[Measurement(pos1, Units.LENGTH_MILLIMETRES) for pos1 in poses]
 
         #if ( row["Velocity (mm/s)"] is None) and (index<idxs[-1]):
-        vels=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS  
+        if nidx==0:
+            vels=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS
+            poses0=poses # Save position_0 to get velocity later
+        elif nidx==1:
+            # Compute first velocity as diff between start position and first sweep pos
+            diffs=[ax1_pos-poses0[0],val-poses0[1],ax3_pos-poses0[2]]
+            vels=[Measurement(d1/(duration_sec/npts),Units.VELOCITY_MILLIMETRES_PER_SECOND) for d1 in diffs]
+        elif index==idxs[-1]:
+            vels=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS  
+        else:
+            vels=[None]*NDIMS
         #else:
         #    # TODO: This is suspicious singleton vs. list
         #    value=row["Velocity (mm/s)"] if (index < idxs[-1]) else 0   # Make final vel 0
@@ -147,12 +159,15 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
 
         # Toggle the DIO (first channel): at 0 will be 1, at 1 will be 0, at 2 will be 1, etc..
         # use +1 mod 2. TODO (this is pretty hacky and inflexible)
-        pvt.set_digital_output(1,(index+1)%2)
+        #pvt.set_digital_output(1,(index+1)%2)
 
-        pvt.point(poses, vels, Measurement(3.0/npts, Units.TIME_SECONDS) ) # TODO: Entire duration
-
-        #if index==0:
-        #    start_pos=[poses,vels, Measurement(2.0, Units.TIME_SECONDS) ] # Let it take x seconds to get to start pos
+        # Don't add first point to PVT path. Instead note it as start pos
+        if index==0:
+            vels0=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS  
+            start_pos=[poses_meas,vels0, Measurement(5.0, Units.TIME_SECONDS) ] # Let it take x seconds to get to start pos
+        else:
+            pvt.point(poses_meas, vels, Measurement(duration_sec/npts, Units.TIME_SECONDS) ) # TODO: Entire duration
+            
             
         npoint += 1 # Can't use "index" in loop since it may skip points
 
@@ -169,7 +184,7 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
     #            [None,None,None],
     #            Measurement(2.0, Units.TIME_SECONDS) ];
 
-    return pvt_buffer,arr_axes,(0,0,0)
+    return pvt_buffer,arr_axes,start_pos
 
 
 class ZaberPVT:
@@ -185,12 +200,12 @@ class ZaberPVT:
 
         #self.setup_zlut([0,10],[10,0])
 
-    def setup_zlut(self,ax1_lims,ax3_lims,step_size=5):
-        df_zlut=table_to_df()
+    def setup_zlut(self,ax1_lims,ax3_lims,step_size=5,duration_sec=3,npts=51,mult=1):
+        df_zlut=table_to_df() # Probably don't need anymore
         #self.pvt_buffer,self.arr_pvt_axes,self.start_pos=df_to_pvt(self.devices[0],df_zlut,
         #    ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims, step_size=step_size)
-        self.pvt_buffer,self.arr_pvt_axes,self.start_pos=cos_to_pvt(self.devices[0],51,
-            ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims )
+        self.pvt_buffer,self.arr_pvt_axes,self.start_pos=cos_to_pvt(self.devices[0],npts,
+            ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims, duration_sec=duration_sec,mult=mult)
 
         # for execution:
         self.live_pvt = self.devices[0].get_pvt(2)
@@ -202,13 +217,19 @@ class ZaberPVT:
 
     def home3(self):
         self.devices[0].all_axes.home()
-        self.devices[2].all_axes.home()
+        self.devices[DEVICE_ROT_MIRROR].all_axes.home()
 
-    def move3(self, amt_deg=45):
+    def sweep3(self, amt_deg=45, duration=3.0):
         self.live_pvt.call(self.pvt_buffer)
-        if False:
-            self.devices[2].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
-                                          velocity=amt_deg/3.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
+        if True:
+            self.devices[DEVICE_ROT_MIRROR].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
+                                          velocity=amt_deg/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
+                                          wait_until_idle=False)
+                                          
+    def to_start3(self, amt_deg=45, duration=3.0):
+        self.live_pvt.point(*self.start_pos)
+        self.devices[DEVICE_ROT_MIRROR].get_axis(1).move_absolute(0, Units.ANGLE_DEGREES,
+                                          velocity=amt_deg/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
                                           wait_until_idle=False)
 
 
