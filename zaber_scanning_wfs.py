@@ -11,6 +11,8 @@ import zaber_pvt # UHCO wrapper
 ### Config/settings
 SETTINGS={}
 
+MOVE_TIME_S=1.0
+
 def read_config(fname='./config.xml'):
     settings={}
     tree=ET.parse(fname)
@@ -80,32 +82,37 @@ def do_start(arg,event):
         sweep1()
 
 def do_sweep(arg,event):
-    sweep_time=str_sweep_time.get()
+    #sweep_time=str_sweep_time.get()
     if arg==0:
-        sweep1()
+        zpvt.sweep3()
 
 def DEG2RAD(angl):
     return angl/180.0*np.pi
-    
+
 def do_pos(arg,event):
     which_sweep=arg[0]
-    which_sweep_str=["horizontal","vertical","diagonal"][which_sweep]
-
     which_pos=arg[1]
-    which_pos_str=["middle","start"][which_pos]
-    for nmotor,motor1 in enumerate(motors):
-        limit1=int( motor1.settings.get("limit.max") )
-        frac=float( SETTINGS["pos_%s_%s%d"%(which_pos_str,which_sweep_str,nmotor+1)] )
-        print (nmotor, limit1, frac )
-        if which_pos==0:
-            motor1.move_absolute(limit1 * frac, wait_until_idle=False)
-        elif which_pos==1:
-            if nmotor==1:
-                desired=(1-np.cos(DEG2RAD(float(SETTINGS["min_angle_horizontal"])))) * float(SETTINGS["mult_horizontal"])
-                print(desired)
-                move_motor_relative(nmotor, desired )
-            else:
-                move_motor_relative(nmotor, frac )
+    
+    if which_sweep==0 and which_pos==1:
+        for nmotor in [0,1,2]:
+            val=int( str_entries1[nmotor].get() )
+            val_meas=Measurement(value=val, unit=Units.LENGTH_MILLIMETRES)
+
+            motors[nmotor].move_absolute( val, Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+                velocity=val/MOVE_TIME_S, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
+
+    if which_sweep==0 and which_pos==0:
+        min3=int( str_entries0[2].get()  )
+        max3=int( str_entries2[2].get()  )
+        mid3=motors[2].get_position("mm")
+        mid1=motors[0].get_position("mm")
+
+        zpvt.setup_zlut([mid1,mid1],[mid3+min3,mid3+max3],
+            duration_sec=float(SETTINGS['horiz_sweep_dur']),
+            npts=int(SETTINGS['horiz_sweep_npts']),
+            mult=float(SETTINGS['horiz_sweep_mult']))
+            
+        zpvt.to_start3()
         
 # Zaber Motor Commands
 def connect(port="COM4"):
@@ -215,6 +222,9 @@ def motor_home(nmotor):
     if connected():
         motors[nmotor].home(wait_until_idle = True)
 
+
+SETTINGS=read_config() # Read settings from XML file
+
 root = Tk()
 root.title('Zaber - Simple UI')
 root.geometry('900x400')
@@ -260,6 +270,7 @@ for nb,l1 in enumerate(l_pos):
     pos_strings[nb].set('? %d'%(nb+1))
     l1.grid(row=nb+1, column=3, padx=5, pady=5)
 
+# Numerical tables (populated from XML) for sweep pos's
 str_entries0=[StringVar() for n in range(5)]
 str_entries1=[StringVar() for n in range(5)]
 str_entries2=[StringVar() for n in range(5)]
@@ -268,18 +279,27 @@ entries1 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entri
 entries2 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries2)]
 
 enables = [BooleanVar(f,True) for n in range(5)]
-enables[3].set(False)
+
 widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_entries2)]
 
+l_0 = ttk.Label(f, text="0 (abs)"); l_0.grid(row=0, column=7, padx=5, pady=5)
+
+# Horizontal scan buttons:
 for n in range(5):
     entries0[n].grid(row=n+1,column=6,padx=5,pady=5)
     entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
     entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
-    str_entries0[n].set('2')
-    str_entries1[n].set('10')
-    str_entries2[n].set('')
-
     widget_enables[n].grid(row=n+1,column=10)
+
+    sets=SETTINGS['pos%d_horiz'%(n+1)]
+    vals=sets.split(',')
+    str_entries0[n].set(vals[0])
+    str_entries1[n].set(vals[1])
+    str_entries2[n].set(vals[2])
+    
+    if (int(vals[3])==0):
+        enables[n].set(False)
+
 
 if 0:
     # Sweep buttons
@@ -310,17 +330,15 @@ if 0:
 
 b_h_m = ttk.Button(f, text="Horiz Middle")
 b_h_m.grid(row=8, column=3, padx=5, pady=5)
-b_h_m.bind('<ButtonPress-1>',partial(do_pos,[0,0]) )
+b_h_m.bind('<ButtonPress-1>',partial(do_pos,[0,1]) )
 
 b_h_s = ttk.Button(f, text="Horiz Start")
 b_h_s.grid(row=8, column=1, padx=5, pady=5)
-b_h_s.bind('<ButtonPress-1>',partial(do_pos,[0,1]) )
+b_h_s.bind('<ButtonPress-1>',partial(do_pos,[0,0]) )
 
 b_h_sw = ttk.Button(f, text="Horiz Sweep")
 b_h_sw.grid(row=8, column=5, padx=5, pady=5)
 b_h_sw.bind('<ButtonPress-1>',partial(do_sweep,0) )
-
-SETTINGS=read_config()
 
 if not(SETTINGS['autoconnect'] is None) and not (SETTINGS['autoconnect']=="None"):
     root.after(100, partial(connect,SETTINGS['autoconnect']) )

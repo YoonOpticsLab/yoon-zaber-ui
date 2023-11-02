@@ -21,29 +21,15 @@
 	-->
 	
 	<!-- Proportion of range of motors -->
-	<pos_middle_horizontal1>0.5</pos_middle_horizontal1>
-	<pos_middle_horizontal2>0</pos_middle_horizontal2>
-	<pos_middle_horizontal3>0.5</pos_middle_horizontal3>
-	<pos_middle_horizontal4>0</pos_middle_horizontal4>
-	<pos_middle_horizontal5>0</pos_middle_horizontal5>
+	<pos1_horiz>,30,,1</pos1_horiz>
+	<pos2_horiz>-30,0,30,1</pos2_horiz>
+	<pos3_horiz>-30,40,30,1</pos3_horiz>
+	<pos4_horiz>,,,1</pos4_horiz>
+	<pos5_horiz>,,,0</pos5_horiz>
 
 	<!-- Horizontal sweep -->
-	<min_angle_horizontal>-40</min_angle_horizontal>
-	<max_angle_horizontal> 40</max_angle_horizontal>
-	<mult_horizontal>90</mult_horizontal>
-	<steps_horizontal>51</steps_horizontal>
-
-	<!-- Relative to middle position -->
-	<pos_start_horizontal1>-0</pos_start_horizontal1>
-	<pos_start_horizontal2>0</pos_start_horizontal2>
-	<pos_start_horizontal3>-30</pos_start_horizontal3>
-	<pos_start_horizontal4>-90</pos_start_horizontal4>
-	<pos_start_horizontal5>30</pos_start_horizontal5>
-	
-	<pos_stop_horizontal1>0</pos_stop_horizontal1>
-	<pos_stop_horizontal2></pos_stop_horizontal2>
-	<pos_stop_horizontal3>-</pos_stop_horizontal3>
-	<pos_stop_horizontal4>-</pos_stop_horizontal4>
-	<pos_stop_horizontal4>-</pos_stop_horizontal4>
-	
+	<horiz_sweep_dur>3</horiz_sweep_dur>
+	<horiz_sweep_npts>9</horiz_sweep_npts> <!-- Odd number better -->
+	<horiz_sweep_mult>75</horiz_sweep_mult>
+		
 </settings>

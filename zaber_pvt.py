@@ -147,7 +147,7 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
         elif nidx==1:
             # Compute first velocity as diff between start position and first sweep pos
             diffs=[ax1_pos-poses0[0],val-poses0[1],ax3_pos-poses0[2]]
-            vels=[Measurement(d1/(duration_sec/npts),Units.VELOCITY_MILLIMETRES_PER_SECOND) for d1 in diffs]
+            vels=[Measurement(d1/(duration_sec/(npts-1)),Units.VELOCITY_MILLIMETRES_PER_SECOND) for d1 in diffs]
         elif index==idxs[-1]:
             vels=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS  
         else:
@@ -166,7 +166,7 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
             vels0=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS  
             start_pos=[poses_meas,vels0, Measurement(5.0, Units.TIME_SECONDS) ] # Let it take x seconds to get to start pos
         else:
-            pvt.point(poses_meas, vels, Measurement(duration_sec/npts, Units.TIME_SECONDS) ) # TODO: Entire duration
+            pvt.point(poses_meas, vels, Measurement(duration_sec/(npts-1), Units.TIME_SECONDS) ) # TODO: Entire duration
             
             
         npoint += 1 # Can't use "index" in loop since it may skip points
