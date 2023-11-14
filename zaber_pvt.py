@@ -106,7 +106,10 @@ def df_to_pvt(device, df_zlut, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10]
 def DEG2RAD(angl):
     return angl/180.0 * np.pi
     
-def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10], ax3_sweep_lims=[10,0], bounds=[-40,40],mult=0,duration_sec=3.0):
+# Build the PVT table algorithmic ally based on the specified parameters    
+def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3,
+        ax1_sweep_lims=[0,10], ax3_sweep_lims=[10,0], bounds=[-40,40],
+        mult=0,duration_sec=3.0):
     pvt = device.get_pvt(npvt)
     pvt.disable()
 
@@ -159,7 +162,7 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
 
         # Toggle the DIO (first channel): at 0 will be 1, at 1 will be 0, at 2 will be 1, etc..
         # use +1 mod 2. TODO (this is pretty hacky and inflexible)
-        #pvt.set_digital_output(1,(index+1)%2)
+        pvt.set_digital_output(1,(index+1)%2)
 
         # Don't add first point to PVT path. Instead note it as start pos
         if index==0:
@@ -171,7 +174,7 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3, ax1_sweep_lims=[0,10
             
         npoint += 1 # Can't use "index" in loop since it may skip points
 
-    # pvt.set_digital_output(1,0)
+    pvt.set_digital_output(1,0)
 
     # finish writing to the buffer
     pvt.disable()
@@ -217,18 +220,18 @@ class ZaberPVT:
 
     def home3(self):
         self.devices[0].all_axes.home()
-        self.devices[DEVICE_ROT_MIRROR].all_axes.home()
+        self.devices[DEVICE_ROT_PLATFORM].all_axes.home()
 
     def sweep3(self, amt_deg=45, duration=3.0):
         self.live_pvt.call(self.pvt_buffer)
-        if True:
-            self.devices[DEVICE_ROT_MIRROR].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
-                                          velocity=amt_deg/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
+        amt_deg=-30
+        self.devices[DEVICE_ROT_PLATFORM].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
+                                          velocity=abs(amt_deg)*2/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
                                           wait_until_idle=False)
                                           
     def to_start3(self, amt_deg=45, duration=3.0):
         self.live_pvt.point(*self.start_pos)
-        self.devices[DEVICE_ROT_MIRROR].get_axis(1).move_absolute(0, Units.ANGLE_DEGREES,
+        self.devices[DEVICE_ROT_PLATFORM].get_axis(1).move_absolute(30, Units.ANGLE_DEGREES,
                                           velocity=amt_deg/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
                                           wait_until_idle=False)
 

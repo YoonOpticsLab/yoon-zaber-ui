@@ -100,6 +100,10 @@ def do_pos(arg,event):
 
             motors[nmotor].move_absolute( val, Units.LENGTH_MILLIMETRES, wait_until_idle=False,
                 velocity=val/MOVE_TIME_S, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
+                
+        motors[4].move_absolute(0, Units.ANGLE_DEGREES,
+                                          velocity=20/2.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
+                                          wait_until_idle=False)                
 
     if which_sweep==0 and which_pos==0:
         min3=int( str_entries0[2].get()  )
@@ -222,7 +226,7 @@ def motor_home(nmotor):
     if connected():
         motors[nmotor].home(wait_until_idle = True)
 
-
+# Main code starts here
 SETTINGS=read_config() # Read settings from XML file
 
 root = Tk()
@@ -284,7 +288,7 @@ widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_e
 
 l_0 = ttk.Label(f, text="0 (abs)"); l_0.grid(row=0, column=7, padx=5, pady=5)
 
-# Horizontal scan buttons:
+# Horizontal scan values:
 for n in range(5):
     entries0[n].grid(row=n+1,column=6,padx=5,pady=5)
     entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
