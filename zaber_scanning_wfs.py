@@ -36,6 +36,7 @@ motors=["0","1","2","3","3"]
 nx,ny,nz,r1,r2=[0,1,2,3,4]
 poses=np.zeros(5,dtype='int')
 
+# Amount the buttons move, in cm or degrees
 nudge_amount= [
     [1,10],
     [1,10],
@@ -92,7 +93,7 @@ def DEG2RAD(angl):
 def do_pos(arg,event):
     which_sweep=arg[0]
     which_pos=arg[1]
-    
+
     if which_sweep==0 and which_pos==1:
         for nmotor in [0,1,2]:
             val=int( str_entries1[nmotor].get() )
@@ -100,10 +101,20 @@ def do_pos(arg,event):
 
             motors[nmotor].move_absolute( val, Units.LENGTH_MILLIMETRES, wait_until_idle=False,
                 velocity=val/MOVE_TIME_S, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
-                
-        motors[4].move_absolute(0, Units.ANGLE_DEGREES,
-                                          velocity=20/2.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
-                                          wait_until_idle=False)                
+
+        try:
+            pos3=int(str_entries1[3].get())
+            motors[3].move_absolute(pos3, Units.ANGLE_DEGREES, wait_until_idle=False,
+                                          velocity=20/2.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND)
+        except:
+            pass
+
+        try:
+            pos4=int(str_entries1[4].get())
+            motors[4].move_absolute(pos4, Units.ANGLE_DEGREES, wait_until_idle=False,
+                                          velocity=20/2.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND)
+        except:
+            pass
 
     if which_sweep==0 and which_pos==0:
         min3=int( str_entries0[2].get()  )
@@ -115,9 +126,8 @@ def do_pos(arg,event):
             duration_sec=float(SETTINGS['horiz_sweep_dur']),
             npts=int(SETTINGS['horiz_sweep_npts']),
             mult=float(SETTINGS['horiz_sweep_mult']))
-            
         zpvt.to_start3()
-        
+
 # Zaber Motor Commands
 def connect(port="COM4"):
     global motors, device_list
@@ -128,31 +138,18 @@ def connect(port="COM4"):
         zpvt.connect()
 
         device_list=zpvt.devices
-    else:
-
-        Library.enable_device_db_store()
-        connection=Connection.open_serial_port(port)  # confirm that this is the right serial port
-
-        device_list = connection.detect_devices()
-        print("Found {} devices".format(len(device_list)))
  
-    device1 = device_list[0]  # device1 is the X-MCC
-
-    LSQx = device1.get_axis(1)  # "LSQx" refers to your first LSQ
-    LSQy = device1.get_axis(2)  # "LSQy" refers to your second LSQ
-    LSQz = device1.get_axis(3)  # "LSQz" refers to your third LSQ
-
     if len(device_list)>1:
-        device2 = device_list[1]  # device1 is the X-MCC
-        RSW1 = device2.get_axis(1)
-
-        device3 = device_list[2]  # device1 is the X-MCC
-        RSW2 = device3.get_axis(1)
+        motors=[device_list[0].get_axis(1),
+                device_list[0].get_axis(2),
+                device_list[0].get_axis(3),
+                device_list[1].get_axis(3),
+                device_list[2].get_axis(3)]
     else:
-        RSW1 = None
-        RSW2 = None
+        motors=[device_list[0].get_axis(1),
+                device_list[0].get_axis(2),
+                device_list[0].get_axis(3), None, None]
 
-    motors=[LSQx, LSQy, LSQz, RSW1, RSW2]
     l_status.configure(text="OK!")
 
 def connected():
@@ -231,7 +228,7 @@ SETTINGS=read_config() # Read settings from XML file
 
 root = Tk()
 root.title('Zaber - Simple UI')
-root.geometry('900x400')
+root.geometry('900x350')
 f = ttk.Frame(root, width=512); f.grid()
 
 b_connect = ttk.Button(f, text="Connect", command=connect); b_connect.grid(row=0, column=0, padx=5, pady=5)
@@ -275,35 +272,34 @@ for nb,l1 in enumerate(l_pos):
     l1.grid(row=nb+1, column=3, padx=5, pady=5)
 
 # Numerical tables (populated from XML) for sweep pos's
-str_entries0=[StringVar() for n in range(5)]
+#str_entries0=[StringVar() for n in range(5)]
 str_entries1=[StringVar() for n in range(5)]
-str_entries2=[StringVar() for n in range(5)]
-entries0 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries0)]
+#str_entries2=[StringVar() for n in range(5)]
+#entries0 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries0)]
 entries1 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries1)]
-entries2 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries2)]
+#entries2 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries2)]
 
 enables = [BooleanVar(f,True) for n in range(5)]
 
-widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_entries2)]
+#widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_entries1)]
 
 l_0 = ttk.Label(f, text="0 (abs)"); l_0.grid(row=0, column=7, padx=5, pady=5)
 
 # Horizontal scan values:
 for n in range(5):
-    entries0[n].grid(row=n+1,column=6,padx=5,pady=5)
+    #entries0[n].grid(row=n+1,column=6,padx=5,pady=5)
     entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
-    entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
-    widget_enables[n].grid(row=n+1,column=10)
+    #entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
+    #widget_enables[n].grid(row=n+1,column=10)
 
     sets=SETTINGS['pos%d_horiz'%(n+1)]
     vals=sets.split(',')
-    str_entries0[n].set(vals[0])
+    #str_entries0[n].set(vals[0])
     str_entries1[n].set(vals[1])
-    str_entries2[n].set(vals[2])
-    
-    if (int(vals[3])==0):
-        enables[n].set(False)
+    #str_entries2[n].set(vals[2])
 
+    #if (int(vals[3])==0):
+        #enables[n].set(False)
 
 if 0:
     # Sweep buttons
@@ -332,17 +328,36 @@ if 0:
     b_start = ttk.Button(f, text="Setup Sweep", command=setup_sweep)
     b_start.grid(row=0, column=10, padx=5, pady=5)
 
-b_h_m = ttk.Button(f, text="Horiz Middle")
-b_h_m.grid(row=8, column=3, padx=5, pady=5)
-b_h_m.bind('<ButtonPress-1>',partial(do_pos,[0,1]) )
+b_middle = ttk.Button(f, text="Middle")
+b_middle.grid(row=6, column=7, padx=5, pady=5)
+b_middle.bind('<ButtonPress-1>',partial(do_pos,[0,1]) )
 
-b_h_s = ttk.Button(f, text="Horiz Start")
-b_h_s.grid(row=8, column=1, padx=5, pady=5)
+b_h_s = ttk.Button(f, text="Start")
+b_h_s.grid(row=7, column=6, padx=5, pady=5)
 b_h_s.bind('<ButtonPress-1>',partial(do_pos,[0,0]) )
 
-b_h_sw = ttk.Button(f, text="Horiz Sweep")
-b_h_sw.grid(row=8, column=5, padx=5, pady=5)
+b_h_sw = ttk.Button(f, text="Sweep")
+b_h_sw.grid(row=7, column=8, padx=5, pady=5)
 b_h_sw.bind('<ButtonPress-1>',partial(do_sweep,0) )
+
+str_H=StringVar()
+str_V=StringVar()
+entryH = ttk.Entry(f, width=7, textvariable=str_H)
+entryH.grid(row=7,column=4,padx=5,pady=5)
+entryV = ttk.Entry(f, width=7, textvariable=str_V)
+entryV.grid(row=7,column=5,padx=5,pady=5)
+lblH = ttk.Label(f, text="Horizontal:"); lblH.grid(row=6,column=4)
+lblV = ttk.Label(f, text="Vertical:"); lblV.grid(row=6,column=5)
+#entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
+#entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
+
+set_start_H=SETTINGS['horiz_sweep_start']
+str_H.set(set_start_H)
+set_start_V=SETTINGS['vert_sweep_start']
+str_V.set(set_start_V)
+#str_entries0[n].set(vals[0])
+#vals=sets.split(',')
+#str_entries1[n].set(vals[1])
 
 if not(SETTINGS['autoconnect'] is None) and not (SETTINGS['autoconnect']=="None"):
     root.after(100, partial(connect,SETTINGS['autoconnect']) )
