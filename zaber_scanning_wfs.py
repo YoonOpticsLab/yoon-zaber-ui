@@ -8,6 +8,8 @@ import xml.etree.ElementTree as ET
 
 import zaber_pvt # UHCO wrapper
 
+import camera_window
+
 ### Config/settings
 SETTINGS={}
 
@@ -84,6 +86,8 @@ def do_start(arg,event):
 
 def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
+
+    #str_filename
     if arg==0:
         zpvt.sweep3()
 
@@ -351,6 +355,10 @@ lblV = ttk.Label(f, text="Vertical:"); lblV.grid(row=6,column=5)
 #entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
 #entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
 
+str_filename=StringVar(); #"Enter Subject ID");
+str_filename.set("TEST")
+e_sweep_filename = ttk.Entry(f, textvariable=str_filename); e_sweep_filename.grid(row=7, column=0, padx=5, pady=5)
+
 set_start_H=SETTINGS['horiz_sweep_start']
 str_H.set(set_start_H)
 set_start_V=SETTINGS['vert_sweep_start']
@@ -359,7 +367,16 @@ str_V.set(set_start_V)
 #vals=sets.split(',')
 #str_entries1[n].set(vals[1])
 
+# TODO/tmp
+root.settings=SETTINGS
+if int(SETTINGS['camera_preview'])>0:
+    cam0=camera_window.open_window(root,0)
+    cam1=camera_window.open_window(root,1)
+
 if not(SETTINGS['autoconnect'] is None) and not (SETTINGS['autoconnect']=="None"):
     root.after(100, partial(connect,SETTINGS['autoconnect']) )
 
 root.mainloop()
+
+cam0.stop()
+cam1.stop()
