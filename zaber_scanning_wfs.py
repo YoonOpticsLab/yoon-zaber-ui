@@ -121,8 +121,8 @@ def do_pos(arg,event):
             pass
 
     if which_sweep==0 and which_pos==0:
-        min3=int( str_entries0[2].get()  )
-        max3=int( str_entries2[2].get()  )
+        min3=int( str_H.get()  )
+        max3=-int( str_H.get()  )
         mid3=motors[2].get_position("mm")
         mid1=motors[0].get_position("mm")
 
@@ -147,8 +147,8 @@ def connect(port="COM4"):
         motors=[device_list[0].get_axis(1),
                 device_list[0].get_axis(2),
                 device_list[0].get_axis(3),
-                device_list[1].get_axis(3),
-                device_list[2].get_axis(3)]
+                device_list[1].get_axis(1),
+                device_list[2].get_axis(1)]
     else:
         motors=[device_list[0].get_axis(1),
                 device_list[0].get_axis(2),
@@ -165,8 +165,8 @@ def connected():
 
 def setup_sweep():
     zpvt.setup_zlut(
-        [float(str_entries0[0].get()),float(str_entries1[0].get() )],
-        [float(str_entries0[2].get()),float(str_entries1[2].get() )] )
+        [float(str_H.get()),float(str_H.get() )],
+        [float(str_V.get()),float(str_V.get() )] )
 
 def sweep1():
     if connected()==False:
