@@ -89,7 +89,11 @@ def do_sweep(arg,event):
 
     #str_filename
     if arg==0:
-        zpvt.sweep3()
+        val=-int( str_H.get()  )
+        zpvt.sweep3(val)
+    elif arg==1:
+        val=-int( str_V.get()  )
+        zpvt.sweep3v(val*2)
 
 def DEG2RAD(angl):
     return angl/180.0*np.pi
@@ -130,7 +134,20 @@ def do_pos(arg,event):
             duration_sec=float(SETTINGS['horiz_sweep_dur']),
             npts=int(SETTINGS['horiz_sweep_npts']),
             mult=float(SETTINGS['horiz_sweep_mult']))
-        zpvt.to_start3()
+        zpvt.to_start3(min3)
+        
+    if which_sweep==1 and which_pos==0:
+        min1=int( str_V.get()  )
+        max1=-int( str_V.get()  )
+        mid3=motors[2].get_position("mm")
+        mid1=motors[0].get_position("mm")
+
+        zpvt.setup_zlut([mid1+min1,mid1+max1],[mid3,mid3],
+            duration_sec=float(SETTINGS['horiz_sweep_dur']),
+            npts=int(SETTINGS['horiz_sweep_npts']),
+            mult=float(SETTINGS['horiz_sweep_mult']))
+        zpvt.to_start3v(min1)
+        
 
 # Zaber Motor Commands
 def connect(port="COM4"):
@@ -336,20 +353,28 @@ b_middle = ttk.Button(f, text="Middle")
 b_middle.grid(row=6, column=7, padx=5, pady=5)
 b_middle.bind('<ButtonPress-1>',partial(do_pos,[0,1]) )
 
-b_h_s = ttk.Button(f, text="Start")
+b_h_s = ttk.Button(f, text="H Start")
 b_h_s.grid(row=7, column=6, padx=5, pady=5)
 b_h_s.bind('<ButtonPress-1>',partial(do_pos,[0,0]) )
 
-b_h_sw = ttk.Button(f, text="Sweep")
+b_h_sw = ttk.Button(f, text="H Sweep")
 b_h_sw.grid(row=7, column=8, padx=5, pady=5)
 b_h_sw.bind('<ButtonPress-1>',partial(do_sweep,0) )
+
+b_v_s = ttk.Button(f, text="V Start")
+b_v_s.grid(row=8, column=6, padx=5, pady=5)
+b_v_s.bind('<ButtonPress-1>',partial(do_pos,[1,0]) )
+
+b_v_sw = ttk.Button(f, text="V Sweep")
+b_v_sw.grid(row=8, column=8, padx=5, pady=5)
+b_v_sw.bind('<ButtonPress-1>',partial(do_sweep,1) )
 
 str_H=StringVar()
 str_V=StringVar()
 entryH = ttk.Entry(f, width=7, textvariable=str_H)
 entryH.grid(row=7,column=4,padx=5,pady=5)
 entryV = ttk.Entry(f, width=7, textvariable=str_V)
-entryV.grid(row=7,column=5,padx=5,pady=5)
+entryV.grid(row=8,column=5,padx=5,pady=5)
 lblH = ttk.Label(f, text="Horizontal:"); lblH.grid(row=6,column=4)
 lblV = ttk.Label(f, text="Vertical:"); lblV.grid(row=6,column=5)
 #entries1[n].grid(row=n+1,column=7,padx=5,pady=5)

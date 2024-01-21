@@ -218,19 +218,31 @@ class ZaberPVT:
 
     def home3(self):
         self.devices[0].all_axes.home()
+        self.devices[DEVICE_ROT_MIRROR].all_axes.home()
         self.devices[DEVICE_ROT_PLATFORM].all_axes.home()
 
-    def sweep3(self, amt_deg=45, duration=3.0):
+    def sweep3(self, amt_deg=5, duration=3.0):
         self.live_pvt.call(self.pvt_buffer)
-        amt_deg=-30
         self.devices[DEVICE_ROT_PLATFORM].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
                                           velocity=abs(amt_deg)*2/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
                                           wait_until_idle=False)
 
-    def to_start3(self, amt_deg=45, duration=3.0):
+    def to_start3(self, amt_deg=5, duration=3.0):
         self.live_pvt.point(*self.start_pos)
-        self.devices[DEVICE_ROT_PLATFORM].get_axis(1).move_absolute(30, Units.ANGLE_DEGREES,
+        self.devices[DEVICE_ROT_PLATFORM].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
                                           velocity=amt_deg/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
+                                          wait_until_idle=False)
+                                          
+    def to_start3v(self, amt_deg=45, duration=3.0):
+        self.live_pvt.point(*self.start_pos)
+        self.devices[DEVICE_ROT_MIRROR].get_axis(1).move_relative(amt_deg, Units.ANGLE_DEGREES,
+                                          velocity=amt_deg/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
+                                          wait_until_idle=False)
+                                          
+    def sweep3v(self, amt_deg=45, duration=3.0):
+        self.live_pvt.call(self.pvt_buffer)
+        self.devices[DEVICE_ROT_MIRROR].get_axis(1).move_relative(amt_deg, Units.ANGLE_DEGREES,
+                                          velocity=abs(amt_deg)/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
                                           wait_until_idle=False)
 
 
