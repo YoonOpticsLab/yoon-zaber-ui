@@ -1,0 +1,5 @@
+zaber-motion
+numpy
+pip
+Pillow
+#ximea : # copy directly from e.g. C:\XIMEA\API\Python\v3
