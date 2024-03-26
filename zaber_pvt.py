@@ -3,7 +3,7 @@ from zaber_motion.ascii import Connection, AllAxes
 from zaber_motion import *
 
 import numpy as np
-import pandas as pd
+#import pandas as pd # Needed for reading spreadsheet of positions, so not really used now.
 
 DEVICE_ROT_MIRROR=1
 DEVICE_ROT_PLATFORM=2
@@ -202,7 +202,7 @@ class ZaberPVT:
         #self.setup_zlut([0,10],[10,0])
 
     def setup_zlut(self,ax1_lims,ax3_lims,step_size=5,duration_sec=3,npts=51,mult=1):
-        df_zlut=table_to_df() # Probably don't need anymore
+        #df_zlut=table_to_df() # Probably don't need anymore
         #self.pvt_buffer,self.arr_pvt_axes,self.start_pos=df_to_pvt(self.devices[0],df_zlut,
         #    ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims, step_size=step_size)
         self.pvt_buffer,self.arr_pvt_axes,self.start_pos=cos_to_pvt(self.devices[0],npts,

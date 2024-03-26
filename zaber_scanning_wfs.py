@@ -87,6 +87,11 @@ def do_start(arg,event):
 def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
 
+    #if not(cam0 is None):
+    cam0.start_sweep("TEST");
+    #if not(cam1 is None):
+    #    cam1.start_sweep("TEST");
+
     #str_filename
     if arg==0:
         val=-int( str_H.get()  )
@@ -155,7 +160,7 @@ def connect(port="COM4"):
     global zpvt
 
     if True: #New way
-        zpvt=zaber_pvt.ZaberPVT()
+        zpvt=zaber_pvt.ZaberPVT(port)
         zpvt.connect()
 
         device_list=zpvt.devices
@@ -302,25 +307,19 @@ entries1 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entri
 
 enables = [BooleanVar(f,True) for n in range(5)]
 
-#widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_entries1)]
+widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_entries1)]
 
 l_0 = ttk.Label(f, text="0 (abs)"); l_0.grid(row=0, column=7, padx=5, pady=5)
 
 # Horizontal scan values:
 for n in range(5):
-    #entries0[n].grid(row=n+1,column=6,padx=5,pady=5)
     entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
-    #entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
-    #widget_enables[n].grid(row=n+1,column=10)
+    widget_enables[n].grid(row=n+1,column=8,padx=5,pady=5)
 
     sets=SETTINGS['pos%d_horiz'%(n+1)]
     vals=sets.split(',')
-    #str_entries0[n].set(vals[0])
     str_entries1[n].set(vals[1])
-    #str_entries2[n].set(vals[2])
 
-    #if (int(vals[3])==0):
-        #enables[n].set(False)
 
 if 0:
     # Sweep buttons
@@ -403,5 +402,7 @@ if not(SETTINGS['autoconnect'] is None) and not (SETTINGS['autoconnect']=="None"
 
 root.mainloop()
 
-cam0.stop()
-cam1.stop()
+if not(cam0 is None):
+    cam0.stop()
+if not(cam1 is None):
+    cam1.stop()

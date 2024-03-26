@@ -112,7 +112,8 @@ class CameraWindow(tk.Toplevel):
 
         except:
             self.cam = None
-            #raise
+            #if self.num==0:
+             #   raise
 
         # TODO: We shouldn't need both of these, but with only one nothing appears. ??
         self.c = tk.Canvas(self, width=512, height=512); self.c.pack(expand=True)
@@ -128,6 +129,7 @@ class CameraWindow(tk.Toplevel):
 
         if not (self.cam is None):
             self.cam.stop_acquisition()
+            self.cam.set_gpi_mode('XI_GPI_TRIGGER')
             self.cam.set_trigger_source(source)
             self.cam.start_acquisition()
 
@@ -136,7 +138,8 @@ class CameraWindow(tk.Toplevel):
         self.sweeping=True
         self.set_camera_trigger_source('XI_TRG_EDGE_RISING')
         #set_camera_trigger_source('XI_GPO_PORT1')
-
+        #print("Set source", num);
+        
     def stop_sweep(self):
         self.sweeping=False
         self.set_camera_trigger_source('XI_TRG_OFF')
@@ -160,7 +163,7 @@ class CameraWindow(tk.Toplevel):
         val=self.slider2.get()
         if not( self.cam is None):
             self.cam.set_gain(val)
-            print('set gain')
+            #print('set gain')
         self.settings['%s_gain'%self.name]=val
         self.label2.config(text='Gain: %0.0f'%val )
 
@@ -199,7 +202,7 @@ class CameraWindow(tk.Toplevel):
 
             w = self.winfo_width() 
             if w<100: w=100 # Very first time w is tiny, causing error.. Workaround
-            im_resized = self.im.resize((int(w*0.75),int(w*0.75/ASPECT_RATIO)), Image.ANTIALIAS)
+            im_resized = self.im.resize((int(w*0.75),int(w*0.75/ASPECT_RATIO)) )#, Image.ANTIALIAS) // caused error
 
             pi2=ImageTk.PhotoImage(im_resized) #,mode='L')
         else:
@@ -208,9 +211,11 @@ class CameraWindow(tk.Toplevel):
             pi = tk.PhotoImage(self.im)
             pi2=ImageTk.PhotoImage(image=self.im)
 
+        #print(self.sweeping);
         # IF there is a real camera image, and we are sweeping, save the file
         if self.sweeping and valid_image:
             filename=get_unique_filename(self.sweep_image_save_filename,'bmp',code='%s_%03d.%s',start=0)
+            print(filename)
             self.im.save(filename)
 
         # For now, need both these lines. NOT GOOD. TODO
@@ -218,7 +223,7 @@ class CameraWindow(tk.Toplevel):
         self.l.image = pi2
 
         #print (self.geometry() );
-        if self. sweeping:
+        if self.sweeping:
             self.after( int(self.settings['camera_sweep_snap_rate_ms']), self.updater)
         else:
             self.after(self.settings['camera_update_rate_ms'], self.updater)
