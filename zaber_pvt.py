@@ -142,6 +142,7 @@ def cos_to_pvt(device, npts=51, npvt=1, nbuffer=1, ndims=3,
             poses = [ax1_pos, val, ax3_pos]
             poses_meas=[Measurement(pos1, Units.LENGTH_MILLIMETRES) for pos1 in poses]
 
+        print( poses )
         #if ( row["Velocity (mm/s)"] is None) and (index<idxs[-1]):
         if nidx==0:
             vels=[Measurement(0, Units.VELOCITY_MILLIMETRES_PER_SECOND)]*NDIMS
@@ -201,12 +202,12 @@ class ZaberPVT:
 
         #self.setup_zlut([0,10],[10,0])
 
-    def setup_zlut(self,ax1_lims,ax3_lims,step_size=5,duration_sec=3,npts=51,mult=1):
+    def setup_zlut(self,ax1_lims,ax3_lims,step_size=5,duration_sec=3,npts=51,mult=1,bounds=(-10,10)):
         #df_zlut=table_to_df() # Probably don't need anymore
         #self.pvt_buffer,self.arr_pvt_axes,self.start_pos=df_to_pvt(self.devices[0],df_zlut,
         #    ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims, step_size=step_size)
         self.pvt_buffer,self.arr_pvt_axes,self.start_pos=cos_to_pvt(self.devices[0],npts,
-            ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims, duration_sec=duration_sec,mult=mult)
+            ax1_sweep_lims=ax1_lims, ax3_sweep_lims=ax3_lims, duration_sec=duration_sec,mult=mult,bounds=bounds)
 
         # for execution:
         self.live_pvt = self.devices[0].get_pvt(2)

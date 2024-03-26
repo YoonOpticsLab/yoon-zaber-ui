@@ -134,14 +134,14 @@ def do_pos(arg,event):
         mid3=motors[2].get_position("mm")
         mid1=motors[0].get_position("mm") # Remain at same position
 
-        mult=float(SETTINGS['horiz_sweep_mult']))
+        mult=float(SETTINGS['horiz_sweep_mult'])
         move_mm=np.sin(angle/180.0 * np.pi) * mult
         print( move_mm)
 
         zpvt.setup_zlut([mid1,mid1],[mid3-move_mm,mid3+move_mm],
             duration_sec=float(SETTINGS['horiz_sweep_dur']),
             npts=int(SETTINGS['horiz_sweep_npts']),
-                        mult=mult)
+                        mult=mult, bounds=(-angle,angle) )
         zpvt.to_start3(angle)
         
     if which_sweep==1 and which_pos==0:
@@ -149,14 +149,14 @@ def do_pos(arg,event):
         mid3=motors[2].get_position("mm") # remain
         mid1=motors[0].get_position("mm")
 
-        mult=float(SETTINGS['horiz_sweep_mult']))
+        mult=float(SETTINGS['horiz_sweep_mult'])
         move_mm=np.sin(angle/180.0 * np.pi) * mult
         print( move_mm)
 
         zpvt.setup_zlut([mid1-move_mm,mid1+move_mm],[mid3,mid3],
             duration_sec=float(SETTINGS['horiz_sweep_dur']),
             npts=int(SETTINGS['horiz_sweep_npts']),
-            mult=mult)
+            mult=mult, bounds=(-angle, angle) )
         zpvt.to_start3v(angle)
         
 

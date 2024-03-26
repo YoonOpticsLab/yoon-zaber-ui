@@ -30,9 +30,9 @@
 	<!-- Horizontal sweep -->
 	<horiz_sweep_dur>3</horiz_sweep_dur>
 	<horiz_sweep_npts>21</horiz_sweep_npts> <!-- Odd number better -->
-	<horiz_sweep_mult>140</horiz_sweep_mult>
+	<horiz_sweep_mult>100</horiz_sweep_mult>
 	
-	<horiz_sweep_start>5</horiz_sweep_start>
-	<vert_sweep_start>5</vert_sweep_start>
+	<horiz_sweep_start>30</horiz_sweep_start>
+	<vert_sweep_start>30</vert_sweep_start>
 
 </settings>
