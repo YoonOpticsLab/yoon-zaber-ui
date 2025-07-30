@@ -13,7 +13,7 @@
     <camera1_exposure_log>1</camera1_exposure_log>
     <camera_sweep_snap_rate_ms>20</camera_sweep_snap_rate_ms>
 
-	<hardware_type>Goniometer 1</hardware_type>
+	<hardware_type>FourMotor-1</hardware_type>
 	
 	<!-- Motor 1: Vertical
 		   Motor 2: In/out
