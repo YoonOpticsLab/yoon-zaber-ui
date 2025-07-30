@@ -63,7 +63,8 @@ def do_home(arg,event):
     motor_home(arg)
 
     if arg==2:
-        cmdHome = device_list[0].prepare_command("pvt 1 setup live 3")
+        num_pvt_motors = 2 if num_motors==2 else 3
+        cmdHome = device_list[0].prepare_command("pvt 1 setup live %d"%num_pvt_motors)
         device_list[0].generic_command( cmdHome );
         print ("Set live")
 
@@ -92,7 +93,6 @@ def do_sweep(arg,event):
     #if not(cam1 is None):
     #    cam1.start_sweep("TEST");
 
-    #str_filename
     if arg==0:
         val=-int( str_H.get()  )
         zpvt.sweep3(val)
