@@ -8,6 +8,8 @@ import numpy as np
 DEVICE_ROT_MIRROR=1
 DEVICE_ROT_PLATFORM=2
 
+# Test of git
+
 # Take xls table and make it into a PVT table
 def table_to_df(filename='z_table.xlsx', NO_VELOCITY=True):
     # True=Let Zaber figure out what the velocities should be
