@@ -63,12 +63,13 @@ def do_home(arg,event):
     motor_home(arg)
 
     if arg==2:
-        sinMove1 = device_list[0].prepare_command("pvt 1 setup live 3")
-        device_list[0].generic_command( sinMove1 );
+        num_pvt_motors = 2 if num_motors==2 else 3
+        cmdHome = device_list[0].prepare_command("pvt 1 setup live %d"%num_pvt_motors)
+        device_list[0].generic_command( cmdHome );
         print ("Set live")
 
 def do_home_all():
-    for n in range(5):
+    for n in range(num_motors):
         if enables[n].get():
             do_home(n,0)
 
@@ -88,20 +89,16 @@ def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
 
     #if not(cam0 is None):
-    cam0.start_sweep("TEST");
+    cam0.start_sweep(str_filename.get());
     #if not(cam1 is None):
     #    cam1.start_sweep("TEST");
 
-    #str_filename
     if arg==0:
         val=-int( str_H.get()  )
         zpvt.sweep3(val)
     elif arg==1:
         val=-int( str_V.get()  )
         zpvt.sweep3v(val*2)
-
-def DEG2RAD(angl):
-    return angl/180.0*np.pi
 
 def do_pos(arg,event):
     which_sweep=arg[0]
@@ -165,22 +162,25 @@ def connect(port="COM4"):
     global motors, device_list
     global zpvt
 
-    if True: #New way
-        zpvt=zaber_pvt.ZaberPVT(port)
-        zpvt.connect()
+    zpvt=zaber_pvt.ZaberPVT(port)
+    zpvt.connect()
 
-        device_list=zpvt.devices
+    device_list=zpvt.devices
  
-    if len(device_list)>1:
+    if SETTINGS['hardware_type'] == 'Goniometer 1':
         motors=[device_list[0].get_axis(1),
-                device_list[0].get_axis(2),
-                device_list[0].get_axis(3),
-                device_list[1].get_axis(1),
-                device_list[2].get_axis(1)]
-    else:
-        motors=[device_list[0].get_axis(1),
-                device_list[0].get_axis(2),
-                device_list[0].get_axis(3), None, None]
+                device_list[0].get_axis(2), None, None, None]
+    else:     
+        if len(device_list)>1:
+            motors=[device_list[0].get_axis(1),
+                    device_list[0].get_axis(2),
+                    device_list[0].get_axis(3),
+                    device_list[1].get_axis(1),
+                    device_list[2].get_axis(1)]
+        else:
+            motors=[device_list[0].get_axis(1),
+                    device_list[0].get_axis(2),
+                    device_list[0].get_axis(3), None, None]
 
     l_status.configure(text="OK!")
 
@@ -230,7 +230,7 @@ def sweep1():
         motors[4].move_relative( vals[4], Units.ANGLE_DEGREES, wait_until_idle=False );
     ##motors[4].move_absolute( vals[4], Units.ANGLE_DEGREES, wait_until_idle=False );
 
-    for nmotor in range(5):
+    for nmotor in range(num_motors):
         set_val(nmotor,vals[nmotor],False) # set new absolute positions
 
 def move_motor(nmotor):
@@ -258,8 +258,13 @@ def motor_home(nmotor):
 # Main code starts here
 SETTINGS=read_config() # Read settings from XML file
 
+if SETTINGS['hardware_type'] == 'Goniometer 1':
+    num_motors=2
+else:
+    num_motors=5
+    
 root = Tk()
-root.title('Zaber - Simple UI')
+root.title('Zaber Scanning WFS - %s'%SETTINGS['hardware_type'])
 root.geometry('900x350')
 f = ttk.Frame(root, width=512); f.grid()
 
@@ -267,14 +272,14 @@ b_connect = ttk.Button(f, text="Connect", command=connect); b_connect.grid(row=0
 
 l_status = ttk.Label(f, text='NOT CONNECTED'); l_status.grid(row=0, column=1)
 
-pos_strings=[StringVar() for n in range(5)]
+pos_strings=[StringVar() for n in range(num_motors)]
 
 # Movements:
-b_homes = [ttk.Button(f, text="Home%d"%(nmotor+1)) for nmotor in range(5)];
-b_m_big = [ttk.Button(f, text="--") for nmotor in range(5)];
-b_m_small = [ttk.Button(f, text="-") for nmotor in range(5)];
-b_p_big = [ttk.Button(f, text="++") for nmotor in range(5)];
-b_p_small = [ttk.Button(f, text="+") for nmotor in range(5)];
+b_homes = [ttk.Button(f, text="Home%d"%(nmotor+1)) for nmotor in range(num_motors)];
+b_m_big = [ttk.Button(f, text="--") for nmotor in range(num_motors)];
+b_m_small = [ttk.Button(f, text="-") for nmotor in range(num_motors)];
+b_p_big = [ttk.Button(f, text="++") for nmotor in range(num_motors)];
+b_p_small = [ttk.Button(f, text="+") for nmotor in range(num_motors)];
 
 # Homes
 for nb,b1 in enumerate(b_homes):
@@ -298,27 +303,28 @@ for nb,b1 in enumerate(b_p_big):
     b1.grid(row=nb+1, column=5, padx=5, pady=5)
     
     b1.bind('<ButtonPress-1>',partial(do_move,(nb,+1, 1) ) )
-l_pos = [ttk.Label(f, textvariable=pos_strings[nmotor]) for nmotor in range(5)];
+l_pos = [ttk.Label(f, textvariable=pos_strings[nmotor]) for nmotor in range(num_motors)];
 for nb,l1 in enumerate(l_pos):
     pos_strings[nb].set('? %d'%(nb+1))
     l1.grid(row=nb+1, column=3, padx=5, pady=5)
 
 # Numerical tables (populated from XML) for sweep pos's
 #str_entries0=[StringVar() for n in range(5)]
-str_entries1=[StringVar() for n in range(5)]
 #str_entries2=[StringVar() for n in range(5)]
 #entries0 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries0)]
-entries1 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries1)]
 #entries2 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries2)]
 
-enables = [BooleanVar(f,True) for n in range(5)]
+str_entries1=[StringVar() for n in range(num_motors)]
+entries1 = [ttk.Entry(f, width=7, textvariable=s) for n,s in enumerate(str_entries1)]
+
+enables = [BooleanVar(f,True) for n in range(num_motors)]
 
 widget_enables = [Checkbutton(f, variable=enables[n]) for n,s in enumerate(str_entries1)]
 
 l_0 = ttk.Label(f, text="0 (abs)"); l_0.grid(row=0, column=7, padx=5, pady=5)
 
 # Horizontal scan values:
-for n in range(5):
+for n in range(num_motors):
     entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
     widget_enables[n].grid(row=n+1,column=8,padx=5,pady=5)
 
@@ -326,8 +332,7 @@ for n in range(5):
     vals=sets.split(',')
     str_entries1[n].set(vals[1])
 
-
-if 0:
+if False:
     # Sweep buttons
     b_start = ttk.Button(f, text="ToStart")
     b_start.grid(row=0, column=6, padx=5, pady=5)
