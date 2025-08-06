@@ -95,9 +95,9 @@ def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
 
     if not(cam0 is None):
-        cam0.start_sweep(str_filename.get()+'_cam0');
+        cam0.start_sweep('output/%s_cam0',str_filename.get());
     if not(cam1 is None):
-        cam1.start_sweep(str_filename.get()+'_cam1');
+        cam1.start_sweep('output/%s_cam1',str_filename.get());
 
     if arg==0:
         val=-int( str_H.get()  )
