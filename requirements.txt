@@ -1,4 +1,4 @@
-zaber-motion
+zaber-motion==4.2.4
 numpy
 pip
 Pillow

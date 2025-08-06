@@ -85,13 +85,19 @@ def do_start(arg,event):
     if arg==0:
         sweep1()
 
+def do_cam_stop(arg,event):
+    if not(cam0 is None):
+        cam0.stop_sweep()
+    if not(cam1 is None):
+        cam1.stop_sweep()
+        
 def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
 
-    #if not(cam0 is None):
-    cam0.start_sweep(str_filename.get());
-    #if not(cam1 is None):
-    #    cam1.start_sweep("TEST");
+    if not(cam0 is None):
+        cam0.start_sweep(str_filename.get()+'_cam0');
+    if not(cam1 is None):
+        cam1.start_sweep(str_filename.get()+'_cam1');
 
     if arg==0:
         val=-int( str_H.get()  )
@@ -100,61 +106,60 @@ def do_sweep(arg,event):
         val=-int( str_V.get()  )
         zpvt.sweep3v(val*2)
 
+# Middle: 0,1
+# HStart: 0,0
+# Vstart: 1,0
 def do_pos(arg,event):
     which_sweep=arg[0]
     which_pos=arg[1]
 
     if which_sweep==0 and which_pos==1:
-        for nmotor in [0,1,2]:
-            val=int( str_entries1[nmotor].get() )
-            val_meas=Measurement(value=val, unit=Units.LENGTH_MILLIMETRES)
+        # for nmotor in [0,1,2]:
+            # val=int( str_entries1[nmotor].get() )
+            # val_meas=Measurement(value=val, unit=Units.LENGTH_MILLIMETRES)
 
-            motors[nmotor].move_absolute( val, Units.LENGTH_MILLIMETRES, wait_until_idle=False,
-                velocity=val/MOVE_TIME_S, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
+            # motors[nmotor].move_absolute( val, Units.LENGTH_MILLIMETRES, wait_until_idle=False,
+                # velocity=val/MOVE_TIME_S, velocity_unit=Units.VELOCITY_MILLIMETRES_PER_SECOND)
 
-        try:
-            pos3=int(str_entries1[3].get())
-            motors[3].move_absolute(pos3, Units.ANGLE_DEGREES, wait_until_idle=False,
-                                          velocity=20/2.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND)
-        except:
-            pass
 
-        try:
-            pos4=int(str_entries1[4].get())
-            motors[4].move_absolute(pos4, Units.ANGLE_DEGREES, wait_until_idle=False,
-                                          velocity=20/2.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND)
-        except:
-            pass
+        pos0=0 #int(str_entries1[0].get())
+        motors[0].move_absolute(pos0, Units.ANGLE_DEGREES, wait_until_idle=False,
+                                      velocity=20/2.0, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND)
+
+        pos1_middle = float(SETTINGS['gonio_start_pos']) + float(SETTINGS['gonio_units_per_deg']) * float(SETTINGS['gonio_start_deg'])
+        motors[1].move_absolute(pos1_middle, Units.NATIVE, wait_until_idle=False,
+                                      velocity=float(SETTINGS['gonio_units_per_deg'])*5, velocity_unit=Units.NATIVE)
 
     if which_sweep==0 and which_pos==0:
         angle=int( str_H.get()  )
-        mid3=motors[2].get_position("mm")
-        mid1=motors[0].get_position("mm") # Remain at same position
+        #mid3=motors[2].get_position("mm")
+        mid1=motors[0].get_position("deg") # Remain at same position
 
-        mult=float(SETTINGS['horiz_sweep_mult'])
-        move_mm=np.sin(angle/180.0 * np.pi) * mult
-        print( move_mm)
+        mult=-1 #float(SETTINGS['horiz_sweep_mult'])
 
-        zpvt.setup_zlut([mid1,mid1],[mid3-move_mm,mid3+move_mm],
+        # Mult unused
+        zpvt.setup_zlut([-angle,angle],[0,100],
             duration_sec=float(SETTINGS['horiz_sweep_dur']),
             npts=int(SETTINGS['horiz_sweep_npts']),
                         mult=mult, bounds=(-angle,angle) )
         zpvt.to_start3(angle)
         
     if which_sweep==1 and which_pos==0:
-        angle=int( str_V.get()  )
-        mid3=motors[2].get_position("mm") # remain
-        mid1=motors[0].get_position("mm")
+        start_deg=float( str_V.get()  )
+        stop_deg=float( str_V2.get()  )
 
-        mult=float(SETTINGS['horiz_sweep_mult'])
-        move_mm=np.sin(angle/180.0 * np.pi) * mult
-        print( move_mm)
+        start_pos = (int(SETTINGS['gonio_start_pos']) +
+            (start_deg + float(SETTINGS['gonio_start_deg'])) * # degrees to move (relative to "7")
+            float(SETTINGS['gonio_units_per_deg2']) )
+        stop_pos = (int(SETTINGS['gonio_start_pos']) +
+            (stop_deg + float(SETTINGS['gonio_start_deg'])) * # degrees to move (relative to "7")
+            float(SETTINGS['gonio_units_per_deg2']) )
 
-        zpvt.setup_zlut([mid1-move_mm,mid1+move_mm],[mid3,mid3],
-            duration_sec=float(SETTINGS['horiz_sweep_dur']),
-            npts=int(SETTINGS['horiz_sweep_npts']),
-            mult=mult, bounds=(-angle, angle) )
-        zpvt.to_start3v(angle)
+        zpvt.setup_zlut([0,0],[start_pos,stop_pos], ndims=2,
+            duration_sec=float(SETTINGS['vert_sweep_dur']),
+            npts=int(SETTINGS['vert_sweep_npts']),
+            mult=-1, bounds=(-99, 99) )
+        zpvt.to_start3v(0)
         
 
 # Zaber Motor Commands
@@ -190,11 +195,6 @@ def connected():
         return False
     else:
         return True
-
-def setup_sweep():
-    zpvt.setup_zlut(
-        [float(str_H.get()),float(str_H.get() )],
-        [float(str_V.get()),float(str_V.get() )] )
 
 def sweep1():
     if connected()==False:
@@ -247,8 +247,8 @@ def move_motor_relative(nmotor,amt):
         val=amt #poses[nmotor]
         if nmotor<3:
             # Linear motors
-            motors[nmotor].move_relative(val, Units.LENGTH_MILLIMETRES,wait_until_idle=False)
-        else:
+            #motors[nmotor].move_relative(val, Units.LENGTH_MILLIMETRES,wait_until_idle=False)
+        #else:
             motors[nmotor].move_relative(val, Units.ANGLE_DEGREES,wait_until_idle=False)
 
 def motor_home(nmotor):
@@ -332,32 +332,6 @@ for n in range(num_motors):
     vals=sets.split(',')
     str_entries1[n].set(vals[1])
 
-if False:
-    # Sweep buttons
-    b_start = ttk.Button(f, text="ToStart")
-    b_start.grid(row=0, column=6, padx=5, pady=5)
-    b_start.bind('<ButtonPress-1>',partial(do_start,0) )
-
-    # Sweep buttons
-    b_sweep1 = ttk.Button(f, text="SweepTo1")
-    b_sweep1.grid(row=0, column=7, padx=5, pady=5)
-    b_sweep1.bind('<ButtonPress-1>',partial(do_sweep,0) )
-
-    # Sweep time
-    str_sweep_time=StringVar()
-    str_sweep_time.set("3")
-    time_entry = ttk.Entry(f, width=7, textvariable=str_sweep_time)
-    time_entry.grid(row=8, column=6, padx=5, pady=5)
-    lblTime = ttk.Label(f, text="Time (s):")
-    lblTime.grid(row=8,column=5,padx=5,pady=5)
-
-    strUnits=['mm','mm','mm (sin)','deg (sin)','deg']
-    l_units=[ttk.Label(f,text=txt,anchor="w",justify=LEFT) for n,txt in enumerate(strUnits)]
-    for n,l in enumerate(l_units):
-        l.grid(row=n+1,column=9)
-
-    b_start = ttk.Button(f, text="Setup Sweep", command=setup_sweep)
-    b_start.grid(row=0, column=10, padx=5, pady=5)
 
 b_middle = ttk.Button(f, text="Middle")
 b_middle.grid(row=6, column=7, padx=5, pady=5)
@@ -379,14 +353,22 @@ b_v_sw = ttk.Button(f, text="V Sweep")
 b_v_sw.grid(row=8, column=8, padx=5, pady=5)
 b_v_sw.bind('<ButtonPress-1>',partial(do_sweep,1) )
 
+b_v_sw = ttk.Button(f, text="Cam. Stop")
+b_v_sw.grid(row=11, column=7, padx=5, pady=5)
+b_v_sw.bind('<ButtonPress-1>',partial(do_cam_stop,1) )
+
+
 str_H=StringVar()
 str_V=StringVar()
+str_V2=StringVar()
 entryH = ttk.Entry(f, width=7, textvariable=str_H)
 entryH.grid(row=7,column=4,padx=5,pady=5)
 entryV = ttk.Entry(f, width=7, textvariable=str_V)
-entryV.grid(row=8,column=5,padx=5,pady=5)
-lblH = ttk.Label(f, text="Horizontal:"); lblH.grid(row=6,column=4)
-lblV = ttk.Label(f, text="Vertical:"); lblV.grid(row=6,column=5)
+entryV.grid(row=8,column=4,padx=5,pady=5)
+entryV2 = ttk.Entry(f, width=7, textvariable=str_V2)
+entryV2.grid(row=8,column=5,padx=5,pady=5)
+#lblH = ttk.Label(f, text="Horizontal:"); lblH.grid(row=6,column=4)
+#lblV = ttk.Label(f, text="Vertical:"); lblV.grid(row=6,column=5)
 #entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
 #entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
 
@@ -398,6 +380,11 @@ set_start_H=SETTINGS['horiz_sweep_start']
 str_H.set(set_start_H)
 set_start_V=SETTINGS['vert_sweep_start']
 str_V.set(set_start_V)
+
+gonio_start=SETTINGS['vert_sweep_start']
+gonio_stop=SETTINGS['vert_sweep_end']
+str_V.set(gonio_start)
+str_V2.set(gonio_stop)
 #str_entries0[n].set(vals[0])
 #vals=sets.split(',')
 #str_entries1[n].set(vals[1])

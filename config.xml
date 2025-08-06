@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <settings>
-    <autoconnect>COM7</autoconnect>
+    <autoconnect>COM6</autoconnect>
     <camera_preview>1</camera_preview>
     <camera_update_rate_ms>1000</camera_update_rate_ms>
     <camera0_gain>5</camera0_gain>
@@ -31,10 +31,16 @@
 
 	<!-- Horizontal sweep -->
 	<horiz_sweep_dur>3</horiz_sweep_dur>
-	<horiz_sweep_npts>21</horiz_sweep_npts> <!-- Odd number better -->
-	<horiz_sweep_mult>100</horiz_sweep_mult>
-	
-	<horiz_sweep_start>30</horiz_sweep_start>
-	<vert_sweep_start>30</vert_sweep_start>
+	<horiz_sweep_npts>35</horiz_sweep_npts> <!-- Odd number better -->
+	<horiz_sweep_start>20</horiz_sweep_start>
+
+	<gonio_units_per_deg>20000</gonio_units_per_deg>
+	<gonio_units_per_deg2>566</gonio_units_per_deg2>
+	<gonio_start_pos>62</gonio_start_pos>
+	<gonio_start_deg>7</gonio_start_deg>
+	<vert_sweep_start>-7</vert_sweep_start>
+	<vert_sweep_end>10</vert_sweep_end>
+	<vert_sweep_dur>6</vert_sweep_dur>
+	<vert_sweep_npts>35</vert_sweep_npts> <!-- Odd number better -->
 
 </settings>
