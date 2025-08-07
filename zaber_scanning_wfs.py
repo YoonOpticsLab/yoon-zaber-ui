@@ -97,7 +97,7 @@ def do_cam_stop(arg,event):
 def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
 
-    now_formatted = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    now_formatted = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     path1='output/%s'%now_formatted
     os.mkdir(path1)
     os.mkdir('%s/sweep_%d'(path1,arg) )
