@@ -7,6 +7,7 @@ from zaber_motion.ascii import Connection, AllAxes
 import xml.etree.ElementTree as ET
 
 import datetime
+import os
 
 import zaber_pvt # UHCO wrapper
 
