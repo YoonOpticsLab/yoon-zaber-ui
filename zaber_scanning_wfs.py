@@ -99,6 +99,7 @@ def do_sweep(arg,event):
     now_formatted = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     path1='output/%s'%now_formatted
     os.mkdir(path1)
+    os.mkdir('%s/sweep_%d'(path1,arg) )
     if not(cam0 is None):
         cam0.start_sweep('output/%s/sweep_%d/%s_cam0'%(now_formatted,arg,str_filename.get()));
     if not(cam1 is None):
