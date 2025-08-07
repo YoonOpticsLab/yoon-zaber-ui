@@ -145,8 +145,8 @@ def do_pos(arg,event):
 
         # Mult unused
         zpvt.setup_zlut([angle1,angle2],[pos1_middle,pos1_middle],
-            duration_sec=float(SETTINGS['horiz_sweep_dur']),
-            npts=int(SETTINGS['horiz_sweep_npts']),
+                        duration_sec=float( str_HD.get() ),
+                        npts=int( str_HN.get() ),
                         mult=mult, bounds=(-angle1,angle1) )
         zpvt.to_start3(angle)
 
@@ -162,8 +162,8 @@ def do_pos(arg,event):
             float(SETTINGS['gonio_units_per_deg2']) )
 
         zpvt.setup_zlut([0,0],[start_pos,stop_pos], ndims=2,
-            duration_sec=float(SETTINGS['vert_sweep_dur']),
-            npts=int(SETTINGS['vert_sweep_npts']),
+                        duration_sec=float( str_VD.get() ),
+                        npts=int( str_VN.get() ),
             mult=-1, bounds=(-99, 99) )
         zpvt.to_start3v(0)
 
@@ -182,8 +182,8 @@ def do_pos(arg,event):
             float(SETTINGS['gonio_units_per_deg2']) )
 
         zpvt.setup_zlut([h_start,h_stop],[gonio_start_pos,gonio_stop_pos], ndims=2,
-            duration_sec=float(SETTINGS['diag_sweep_dur']),
-            npts=int(SETTINGS['diag_sweep_npts']),
+                        duration_sec=float( str_DD.get() ),
+                        npts=int( str_DN.get() ),
             mult=-1, bounds=(-99, 99) )
         zpvt.to_start3(0) # 0 Parameter unused
 
@@ -290,7 +290,7 @@ else:
 
 root = Tk()
 root.title('Zaber Scanning WFS - %s'%SETTINGS['hardware_type'])
-root.geometry('900x350')
+root.geometry('1024x350')
 f = ttk.Frame(root, width=512); f.grid()
 
 b_connect = ttk.Button(f, text="Connect", command=connect); b_connect.grid(row=0, column=0, padx=5, pady=5)
@@ -408,6 +408,33 @@ entryV2.grid(row=8,column=5,padx=5,pady=5)
 #lblV = ttk.Label(f, text="Vertical:"); lblV.grid(row=6,column=5)
 #entries1[n].grid(row=n+1,column=7,padx=5,pady=5)
 #entries2[n].grid(row=n+1,column=8,padx=5,pady=5)
+
+l2 = ttk.Label(f, text="Dur."); l2.grid(row=6, column=9, padx=5, pady=5)
+l1 = ttk.Label(f, text="Num."); l1.grid(row=6, column=10, padx=5, pady=5)
+str_HD=StringVar()
+str_HN=StringVar()
+str_VD=StringVar()
+str_VN=StringVar()
+str_DD=StringVar()
+str_DN=StringVar()
+entryHD = ttk.Entry(f, width=7, textvariable=str_HD)
+entryHN = ttk.Entry(f, width=7, textvariable=str_HN)
+entryVD = ttk.Entry(f, width=7, textvariable=str_VD)
+entryVN = ttk.Entry(f, width=7, textvariable=str_VN)
+entryDD = ttk.Entry(f, width=7, textvariable=str_DD)
+entryDN = ttk.Entry(f, width=7, textvariable=str_DN)
+entryHD.grid(row=7,column=9,padx=5,pady=5)
+entryHN.grid(row=7,column=10,padx=5,pady=5)
+entryVD.grid(row=8,column=9,padx=5,pady=5)
+entryVN.grid(row=8,column=10,padx=5,pady=5)
+entryDD.grid(row=9,column=9,padx=5,pady=5)
+entryDN.grid(row=9,column=10,padx=5,pady=5)
+str_HD.set(SETTINGS['horiz_sweep_dur'])
+str_HN.set(SETTINGS['horiz_sweep_npts'])
+str_VD.set(SETTINGS['vert_sweep_dur'])
+str_VN.set(SETTINGS['vert_sweep_npts'])
+str_DD.set(SETTINGS['diag_sweep_dur'])
+str_DN.set(SETTINGS['diag_sweep_npts'])
 
 str_filename=StringVar(); #"Enter Subject ID");
 str_filename.set("TEST")
