@@ -305,7 +305,7 @@ class ZaberPVT:
         self.devices[DEVICE_ROT_MIRROR].all_axes.home()
         self.devices[DEVICE_ROT_PLATFORM].all_axes.home()
 
-    def sweep3(self, amt_deg=5, duration=3.0):
+    def sweep3(self): #, amt_deg=5, duration=3.0):
         self.live_pvt.call(self.pvt_buffer)
         # self.devices[DEVICE_ROT_PLATFORM].get_axis(1).move_absolute(amt_deg, Units.ANGLE_DEGREES,
                                           # velocity=abs(amt_deg)*2/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
@@ -323,7 +323,7 @@ class ZaberPVT:
     #                                      velocity=amt_deg/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,
     #                                      wait_until_idle=False)
                                           
-    def sweep3v(self, amt_deg=45, duration=3.0):
+    def sweep3v(self): #, amt_deg=45, duration=3.0):
         self.live_pvt.call(self.pvt_buffer)
      #   self.devices[DEVICE_ROT_MIRROR].get_axis(1).move_relative(amt_deg, Units.ANGLE_DEGREES,
       #                                    velocity=abs(amt_deg)/duration, velocity_unit=Units.ANGULAR_VELOCITY_DEGREES_PER_SECOND,

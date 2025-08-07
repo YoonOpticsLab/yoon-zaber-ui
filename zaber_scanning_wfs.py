@@ -6,6 +6,8 @@ from zaber_motion import Units, Library, Measurement
 from zaber_motion.ascii import Connection, AllAxes
 import xml.etree.ElementTree as ET
 
+import datetime
+
 import zaber_pvt # UHCO wrapper
 
 import camera_window
@@ -94,17 +96,15 @@ def do_cam_stop(arg,event):
 def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
 
-    if not(cam0 is None):
-        cam0.start_sweep('output/%s_cam0',str_filename.get());
-    if not(cam1 is None):
-        cam1.start_sweep('output/%s_cam1',str_filename.get());
+    now_formatted = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
 
-    if arg==0:
-        val=-int( str_H.get()  )
-        zpvt.sweep3(val)
-    elif arg==1:
-        val=-int( str_V.get()  )
-        zpvt.sweep3v(val*2)
+    if not(cam0 is None):
+        cam0.start_sweep('output/%s/sweep_%d/%s_cam0',now_formatted,arg,str_filename.get());
+    if not(cam1 is None):
+        cam1.start_sweep('output/%s/sweep_%d/%s_cam1',now_formatted,arg,str_filename.get());
+
+    # Execute the PVT sequence, which was set up earlier when the "start" button clicked
+    zpvt.sweep3()
 
 # Middle: 0,1
 # HStart: 0,0
@@ -131,19 +131,22 @@ def do_pos(arg,event):
                                       velocity=float(SETTINGS['gonio_units_per_deg'])*5, velocity_unit=Units.NATIVE)
 
     if which_sweep==0 and which_pos==0:
-        angle=int( str_H.get()  )
+        angle1=int( str_H.get()  )
+        angle2=int( str_H2.get()  )
         #mid3=motors[2].get_position("mm")
         mid1=motors[0].get_position("deg") # Remain at same position
 
         mult=-1 #float(SETTINGS['horiz_sweep_mult'])
 
+        pos1_middle = float(SETTINGS['gonio_start_pos']) + float(SETTINGS['gonio_units_per_deg']) * float(SETTINGS['gonio_start_deg'])
+
         # Mult unused
-        zpvt.setup_zlut([-angle,angle],[0,100],
+        zpvt.setup_zlut([angle1,angle2],[pos1_middle,pos1_middle],
             duration_sec=float(SETTINGS['horiz_sweep_dur']),
             npts=int(SETTINGS['horiz_sweep_npts']),
                         mult=mult, bounds=(-angle,angle) )
         zpvt.to_start3(angle)
-        
+
     if which_sweep==1 and which_pos==0:
         start_deg=float( str_V.get()  )
         stop_deg=float( str_V2.get()  )
@@ -160,7 +163,26 @@ def do_pos(arg,event):
             npts=int(SETTINGS['vert_sweep_npts']),
             mult=-1, bounds=(-99, 99) )
         zpvt.to_start3v(0)
-        
+
+    if which_sweep==2 and which_pos==0:
+        h_start=int( str_H.get() )
+        h_stop=int( str_H2.get() )
+
+        gonio_start_deg = float( str_V.get() )
+        gonio_stop_deg = float( str_V2.get() )
+
+        gonio_start_pos = (int(SETTINGS['vert_sweep_start']) +
+            (gonio_start_deg + float(SETTINGS['gonio_start_deg'])) * # degrees to move (relative to "7")
+            float(SETTINGS['gonio_units_per_deg2']) )
+        gonio_stop_pos = (int(SETTINGS['vert_sweep_end']) +
+            (gonio_stop_deg  + float(SETTINGS['gonio_start_deg'])) * # degrees to move (relative to "7")
+            float(SETTINGS['gonio_units_per_deg2']) )
+
+        zpvt.setup_zlut([h_start,h_stop],[gonio_start_pos,gonio_stop_pos], ndims=2,
+            duration_sec=float(SETTINGS['diag_sweep_dur']),
+            npts=int(SETTINGS['diag_sweep_npts']),
+            mult=-1, bounds=(-99, 99) )
+        zpvt.to_start3(0) # 0 Parameter unused
 
 # Zaber Motor Commands
 def connect(port="COM4"):
@@ -262,7 +284,7 @@ if SETTINGS['hardware_type'] == 'Goniometer 1':
     num_motors=2
 else:
     num_motors=5
-    
+
 root = Tk()
 root.title('Zaber Scanning WFS - %s'%SETTINGS['hardware_type'])
 root.geometry('900x350')
@@ -353,16 +375,28 @@ b_v_sw = ttk.Button(f, text="V Sweep")
 b_v_sw.grid(row=8, column=8, padx=5, pady=5)
 b_v_sw.bind('<ButtonPress-1>',partial(do_sweep,1) )
 
-b_v_sw = ttk.Button(f, text="Cam. Stop")
-b_v_sw.grid(row=11, column=7, padx=5, pady=5)
-b_v_sw.bind('<ButtonPress-1>',partial(do_cam_stop,1) )
+b_d = ttk.Button(f, text="D Start")
+b_d.grid(row=9, column=6, padx=5, pady=5)
+b_d.bind('<ButtonPress-1>',partial(do_pos,[2,0]) )
 
+b_d_sw = ttk.Button(f, text="D Sweep")
+b_d_sw.grid(row=9, column=8, padx=5, pady=5)
+b_d_sw.bind('<ButtonPress-1>',partial(do_sweep,2) )
+
+b_stop = ttk.Button(f, text="Cam. Stop" )
+#b_stop.config(Fg="red")
+b_stop.grid(row=11, column=7, padx=5, pady=5)
+b_stop.bind('<ButtonPress-1>',partial(do_cam_stop,1) )
+#style.configure('TButton', background='blue', foreground='white')
 
 str_H=StringVar()
+str_H2=StringVar()
 str_V=StringVar()
 str_V2=StringVar()
 entryH = ttk.Entry(f, width=7, textvariable=str_H)
 entryH.grid(row=7,column=4,padx=5,pady=5)
+entryH2 = ttk.Entry(f, width=7, textvariable=str_H2)
+entryH2.grid(row=7,column=5,padx=5,pady=5)
 entryV = ttk.Entry(f, width=7, textvariable=str_V)
 entryV.grid(row=8,column=4,padx=5,pady=5)
 entryV2 = ttk.Entry(f, width=7, textvariable=str_V2)
@@ -377,17 +411,14 @@ str_filename.set("TEST")
 e_sweep_filename = ttk.Entry(f, textvariable=str_filename); e_sweep_filename.grid(row=7, column=0, padx=5, pady=5)
 
 set_start_H=SETTINGS['horiz_sweep_start']
-str_H.set(set_start_H)
-set_start_V=SETTINGS['vert_sweep_start']
-str_V.set(set_start_V)
-
+set_start_H2=SETTINGS['horiz_sweep_end']
 gonio_start=SETTINGS['vert_sweep_start']
 gonio_stop=SETTINGS['vert_sweep_end']
+
+str_H.set(set_start_H)
+str_H2.set(set_start_H2)
 str_V.set(gonio_start)
 str_V2.set(gonio_stop)
-#str_entries0[n].set(vals[0])
-#vals=sets.split(',')
-#str_entries1[n].set(vals[1])
 
 # TODO/tmp
 root.settings=SETTINGS
