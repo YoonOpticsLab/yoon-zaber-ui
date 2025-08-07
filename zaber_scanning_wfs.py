@@ -97,11 +97,12 @@ def do_sweep(arg,event):
     #sweep_time=str_sweep_time.get()
 
     now_formatted = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-
+    path1='output/%s'%now_formatted
+    os.mkdir(path1)
     if not(cam0 is None):
-        cam0.start_sweep('output/%s/sweep_%d/%s_cam0',now_formatted,arg,str_filename.get());
+        cam0.start_sweep('output/%s/sweep_%d/%s_cam0'%(now_formatted,arg,str_filename.get()));
     if not(cam1 is None):
-        cam1.start_sweep('output/%s/sweep_%d/%s_cam1',now_formatted,arg,str_filename.get());
+        cam1.start_sweep('output/%s/sweep_%d/%s_cam1'%(now_formatted,arg,str_filename.get()));
 
     # Execute the PVT sequence, which was set up earlier when the "start" button clicked
     zpvt.sweep3()
@@ -144,7 +145,7 @@ def do_pos(arg,event):
         zpvt.setup_zlut([angle1,angle2],[pos1_middle,pos1_middle],
             duration_sec=float(SETTINGS['horiz_sweep_dur']),
             npts=int(SETTINGS['horiz_sweep_npts']),
-                        mult=mult, bounds=(-angle,angle) )
+                        mult=mult, bounds=(-angle1,angle1) )
         zpvt.to_start3(angle)
 
     if which_sweep==1 and which_pos==0:
